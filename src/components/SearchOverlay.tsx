@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 
 type SearchResult = {
-  type: "page" | "event" | "member";
+  type: "page" | "event" | "member" | "memory";
   title: string;
   snippet: string;
   href: string;
@@ -15,6 +15,7 @@ const TYPE_LABELS: Record<SearchResult["type"], string> = {
   page: "Page",
   event: "Event",
   member: "Sisterhood",
+  memory: "Memory",
 };
 
 export default function SearchOverlay() {
@@ -92,7 +93,7 @@ export default function SearchOverlay() {
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search events, sisters, pages…"
+                placeholder="Search events, sisters, memories, pages…"
                 className="w-full bg-transparent text-sm text-parchment placeholder:text-muted/60 focus:outline-none"
               />
               <button onClick={() => setOpen(false)} aria-label="Close search" className="text-muted hover:text-parchment">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type SearchResult = {
-  type: "page" | "event" | "member";
+  type: "page" | "event" | "member" | "memory";
   title: string;
   snippet: string;
   href: string;
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
   const { data: events } = await supabase
     .from("events")
-    .select("id, title, description, starts_at")
+    .select("id, slug, title, description, starts_at")
     .or(`title.ilike.%${q}%,description.ilike.%${q}%`)
     .limit(5);
 
@@ -78,14 +78,14 @@ export async function GET(request: NextRequest) {
       type: "event",
       title: event.title,
       snippet: new Date(event.starts_at).toLocaleDateString("en-US", { dateStyle: "medium" }),
-      href: "/events",
+      href: `/events/${event.slug}`,
     });
   }
 
   const { data: members } = await supabase
     .from("members")
-    .select("id, full_name, role")
-    .or(`full_name.ilike.%${q}%,role.ilike.%${q}%`)
+    .select("id, full_name, role, bio")
+    .or(`full_name.ilike.%${q}%,role.ilike.%${q}%,bio.ilike.%${q}%`)
     .limit(5);
 
   for (const member of members ?? []) {
@@ -94,6 +94,21 @@ export async function GET(request: NextRequest) {
       title: member.full_name,
       snippet: member.role ?? "Member of the sisterhood",
       href: "/sisterhood",
+    });
+  }
+
+  const { data: memories } = await supabase
+    .from("memories")
+    .select("id, title, caption, media_type")
+    .or(`title.ilike.%${q}%,caption.ilike.%${q}%`)
+    .limit(5);
+
+  for (const memory of memories ?? []) {
+    results.push({
+      type: "memory",
+      title: memory.title || memory.caption || "Untitled memory",
+      snippet: memory.media_type === "video" ? "Video" : "Photo",
+      href: "/memories",
     });
   }
 
