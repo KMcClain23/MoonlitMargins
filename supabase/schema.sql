@@ -64,6 +64,7 @@ create table if not exists memories (
   thumbnail_url text,
   title text,
   caption text,
+  published_at timestamptz,
   event_id uuid references events (id) on delete set null,
   created_at timestamptz not null default now()
 );

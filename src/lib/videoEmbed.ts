@@ -62,9 +62,56 @@ export async function resolveVideoThumbnail(url: string): Promise<string | null>
   return null;
 }
 
+function getYoutubeVideoId(url: string): string | null {
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtube\.com\/shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{6,})/
+  );
+  return match ? (match[1] ?? null) : null;
+}
+
+type YoutubeMetadata = {
+  title: string | null;
+  description: string | null;
+  publishedAt: string | null;
+};
+
+// The full YouTube Data API v3 -- unlike oEmbed, this returns a real
+// description and the video's actual upload date, but needs an API key
+// (free tier, generous quota for a site this size). Returns null entirely
+// if YOUTUBE_API_KEY isn't configured, so every caller below falls back to
+// oEmbed automatically when it's absent.
+async function resolveYoutubeMetadata(videoId: string): Promise<YoutubeMetadata | null> {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${apiKey}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const snippet = data.items?.[0]?.snippet;
+    if (!snippet) return null;
+
+    return {
+      title: typeof snippet.title === "string" ? snippet.title : null,
+      description: typeof snippet.description === "string" ? snippet.description : null,
+      publishedAt: typeof snippet.publishedAt === "string" ? snippet.publishedAt : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveVideoTitle(url: string): Promise<string | null> {
   const embed = getVideoEmbed(url);
   if (!embed) return null;
+
+  if (embed.provider === "youtube") {
+    const videoId = getYoutubeVideoId(url);
+    const viaDataApi = videoId ? await resolveYoutubeMetadata(videoId) : null;
+    if (viaDataApi?.title) return viaDataApi.title;
+  }
 
   const oembedUrl =
     embed.provider === "youtube"
@@ -79,4 +126,46 @@ export async function resolveVideoTitle(url: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Pulls the video's description, when the source platform provides one.
+ * For YouTube, this needs YOUTUBE_API_KEY configured (see resolveYoutubeMetadata) --
+ * YouTube's oEmbed alone has no description field at all. Vimeo's oEmbed
+ * does include a description, so that path needs no API key.
+ */
+export async function resolveVideoDescription(url: string): Promise<string | null> {
+  const embed = getVideoEmbed(url);
+  if (!embed) return null;
+
+  if (embed.provider === "youtube") {
+    const videoId = getYoutubeVideoId(url);
+    const viaDataApi = videoId ? await resolveYoutubeMetadata(videoId) : null;
+    return viaDataApi?.description ?? null;
+  }
+
+  try {
+    const res = await fetch(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.description === "string" ? data.description : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pulls the video's real publish/upload date. Currently YouTube-only (via
+ * the Data API, needs YOUTUBE_API_KEY) -- Vimeo's oEmbed doesn't expose an
+ * upload date either, so this returns null for Vimeo links.
+ */
+export async function resolveVideoPublishedAt(url: string): Promise<string | null> {
+  const embed = getVideoEmbed(url);
+  if (!embed || embed.provider !== "youtube") return null;
+
+  const videoId = getYoutubeVideoId(url);
+  if (!videoId) return null;
+
+  const metadata = await resolveYoutubeMetadata(videoId);
+  return metadata?.publishedAt ?? null;
 }

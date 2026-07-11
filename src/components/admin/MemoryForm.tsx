@@ -12,6 +12,7 @@ type MemoryValues = {
   thumbnail_url?: string | null;
   title?: string | null;
   caption?: string | null;
+  published_at?: string | null;
 };
 
 export default function MemoryForm({
@@ -29,17 +30,45 @@ export default function MemoryForm({
   const [title, setTitle] = useState(memory?.title ?? "");
   const [titleTouched, setTitleTouched] = useState(Boolean(memory?.title));
 
-  // When a YouTube/Vimeo link is pasted and the title hasn't been manually
-  // set (or edited) yet, pull the video's real title automatically rather
-  // than leaving it for the admin to retype by hand.
+  const [caption, setCaption] = useState(memory?.caption ?? "");
+  const [captionTouched, setCaptionTouched] = useState(Boolean(memory?.caption));
+
+  const [publishedAt, setPublishedAt] = useState(memory?.published_at ?? "");
+
+  // When a YouTube/Vimeo link is pasted and the title/caption haven't been
+  // manually set (or edited) yet, pull the video's real title and
+  // description automatically rather than leaving them for the admin to
+  // retype by hand. Also pulls the video's real upload date (YouTube only,
+  // requires YOUTUBE_API_KEY -- silently resolves to nothing without it).
   async function handleMediaChange(url: string) {
-    if (titleTouched || !getVideoEmbed(url)) return;
+    if (!getVideoEmbed(url)) return;
+
+    if (!titleTouched) {
+      try {
+        const res = await fetch(`/api/video-title?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data.title) setTitle(data.title);
+      } catch {
+        // Non-critical -- the admin can still type a title manually.
+      }
+    }
+
+    if (!captionTouched) {
+      try {
+        const res = await fetch(`/api/video-description?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data.description) setCaption(data.description);
+      } catch {
+        // Non-critical -- the admin can still type a caption manually.
+      }
+    }
+
     try {
-      const res = await fetch(`/api/video-title?url=${encodeURIComponent(url)}`);
+      const res = await fetch(`/api/video-published-at?url=${encodeURIComponent(url)}`);
       const data = await res.json();
-      if (data.title) setTitle(data.title);
+      setPublishedAt(data.publishedAt ?? "");
     } catch {
-      // Non-critical -- the admin can still type a title manually.
+      setPublishedAt("");
     }
   }
 
@@ -54,7 +83,8 @@ export default function MemoryForm({
       imageUrl: String(formData.get("imageUrl") ?? ""),
       thumbnailUrl: String(formData.get("thumbnailUrl") ?? ""),
       title,
-      caption: String(formData.get("caption") ?? ""),
+      caption,
+      publishedAt: publishedAt || undefined,
     };
 
     const url = isEditing ? `/api/admin/memories/${memory!.id}` : "/api/admin/memories";
@@ -77,6 +107,9 @@ export default function MemoryForm({
       form.reset();
       setTitle("");
       setTitleTouched(false);
+      setCaption("");
+      setCaptionTouched(false);
+      setPublishedAt("");
     }
     router.refresh();
     onDone?.();
@@ -94,6 +127,15 @@ export default function MemoryForm({
       </div>
 
       <MediaUpload name="imageUrl" initialValue={memory?.image_url} onValueChange={handleMediaChange} />
+
+      {publishedAt ? (
+        <p className="text-xs text-muted">
+          Uploaded to YouTube:{" "}
+          <span className="text-lilac-soft">
+            {new Date(publishedAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
+          </span>
+        </p>
+      ) : null}
 
       <label className="block">
         <span className="mb-2 block text-sm text-muted">
@@ -121,11 +163,19 @@ export default function MemoryForm({
       </div>
 
       <label className="block">
-        <span className="mb-2 block text-sm text-muted">Caption</span>
-        <input
-          name="caption"
-          defaultValue={memory?.caption ?? ""}
-          className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
+        <span className="mb-2 block text-sm text-muted">
+          Caption
+          {!captionTouched && caption ? <span className="ml-2 text-xs text-lilac-soft">(auto-filled)</span> : null}
+        </span>
+        <textarea
+          value={caption}
+          onChange={(e) => {
+            setCaption(e.target.value);
+            setCaptionTouched(true);
+          }}
+          rows={3}
+          placeholder="Auto-fills from Vimeo links (YouTube doesn't expose descriptions), or type your own"
+          className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment placeholder:text-muted/50 focus:border-lilac"
         />
       </label>
 

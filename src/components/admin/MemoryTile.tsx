@@ -13,6 +13,7 @@ type Memory = {
   thumbnail_url: string | null;
   title: string | null;
   caption: string | null;
+  published_at: string | null;
 };
 
 export default function MemoryTile({ memory }: { memory: Memory }) {
@@ -78,7 +79,7 @@ export default function MemoryTile({ memory }: { memory: Memory }) {
         ) : null}
       </div>
       <div className="flex items-center justify-between p-3">
-        <p className="truncate text-xs text-muted">{memory.caption || "Untitled"}</p>
+        <p className="truncate text-xs text-muted">{memory.title || memory.caption || "Untitled"}</p>
         <div className="flex items-center gap-3 shrink-0">
           <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
             Edit

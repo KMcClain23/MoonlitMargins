@@ -9,6 +9,7 @@ const memorySchema = z.object({
   thumbnailUrl: z.string().optional(),
   title: z.string().optional(),
   caption: z.string().optional(),
+  publishedAt: z.string().optional(),
 });
 
 export async function DELETE(
@@ -37,7 +38,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { imageUrl, thumbnailUrl, title, caption } = parsed.data;
+  const { imageUrl, thumbnailUrl, title, caption, publishedAt } = parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase
     .from("memories")
@@ -47,6 +48,7 @@ export async function PATCH(
       thumbnail_url: thumbnailUrl || null,
       title: title || null,
       caption: caption || null,
+      published_at: publishedAt || null,
     })
     .eq("id", id);
 
