@@ -1,6 +1,14 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructed lazily (not at module load) so a missing RESEND_API_KEY only
+// breaks email sending at request time, not the entire build -- Next.js
+// imports every API route during `next build` to collect page data, and an
+// eager `new Resend(...)` at module scope would throw during that import.
+let resendClient: Resend | null = null;
+function resend() {
+  if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY);
+  return resendClient;
+}
 
 const KIND_LABELS: Record<"member" | "interview" | "collab", string> = {
   member: "Membership application",
@@ -16,7 +24,7 @@ export async function sendApplicationNotification(params: {
   const { kind, fullName, email } = params;
 
   // Notify leadership
-  await resend.emails.send({
+  await resend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: process.env.NOTIFY_EMAIL!,
     subject: `New ${KIND_LABELS[kind]}: ${fullName}`,
@@ -24,7 +32,7 @@ export async function sendApplicationNotification(params: {
   });
 
   // Confirmation to the applicant
-  await resend.emails.send({
+  await resend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: "We received your submission: The Moonlit Margins Sisterhood",
@@ -43,7 +51,7 @@ export async function sendRsvpNotification(params: {
   const when = new Date(startsAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 
   // Notify leadership
-  await resend.emails.send({
+  await resend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: process.env.NOTIFY_EMAIL!,
     subject: `New RSVP: ${eventTitle}`,
@@ -51,7 +59,7 @@ export async function sendRsvpNotification(params: {
   });
 
   // Confirmation to the guest
-  await resend.emails.send({
+  await resend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: `You're on the list: ${eventTitle}`,
