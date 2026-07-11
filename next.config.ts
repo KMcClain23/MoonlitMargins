@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // Next.js only serves image-optimizer requests whose `q=` value is in
+    // this list -- 75 is next/image's own implicit default (used by every
+    // <Image> in this app that doesn't pass a `quality` prop), 85 is what
+    // MemberAvatarImage requests explicitly for its manually-built
+    // /_next/image URL. Without this, any request for q=85 400s with
+    // INVALID_IMAGE_OPTIMIZE_REQUEST.
+    qualities: [75, 85],
     remotePatterns: [
       {
         protocol: "https",
