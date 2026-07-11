@@ -35,9 +35,6 @@ async function getMemories(): Promise<Memory[]> {
 export default async function MemoriesPage() {
   const memories = await getMemories();
 
-  // Resolve real screencaps for embed links that don't already have a
-  // manual cover set -- server-side, so the page never tries to embed a
-  // live player (some video owners disable that entirely).
   const autoThumbnails = new Map<string, string | null>();
   await Promise.all(
     memories
@@ -47,8 +44,6 @@ export default async function MemoriesPage() {
       })
   );
 
-  // Same idea for titles -- covers video memories added before the title
-  // field existed, or ones where it was cleared out.
   const autoTitles = new Map<string, string | null>();
   await Promise.all(
     memories
@@ -58,8 +53,6 @@ export default async function MemoriesPage() {
       })
   );
 
-  // And for captions -- only resolves for Vimeo links, since YouTube's
-  // oEmbed has no description field to fall back to.
   const autoCaptions = new Map<string, string | null>();
   await Promise.all(
     memories
@@ -69,10 +62,6 @@ export default async function MemoriesPage() {
       })
   );
 
-  // Resolve each video's real upload date (YouTube only, needs
-  // YOUTUBE_API_KEY -- silently a no-op without it) so memories can be
-  // sorted by when the content actually went up, not by whenever it
-  // happened to get added here.
   const autoPublishedAt = new Map<string, string | null>();
   await Promise.all(
     memories
@@ -85,11 +74,24 @@ export default async function MemoriesPage() {
   // Sort by the real publish date when known, falling back to when the row
   // was added here for anything without one (photos, direct video files,
   // or videos where the date couldn't be resolved).
-  const sorted = [...memories].sort((a, b) => {
-    const aDate = a.published_at || autoPublishedAt.get(a.id) || a.created_at;
-    const bDate = b.published_at || autoPublishedAt.get(b.id) || b.created_at;
-    return new Date(bDate).getTime() - new Date(aDate).getTime();
-  });
+  const effectiveDate = (m: Memory) => m.published_at || autoPublishedAt.get(m.id) || m.created_at;
+
+  const sorted = [...memories].sort(
+    (a, b) => new Date(effectiveDate(b)).getTime() - new Date(effectiveDate(a)).getTime()
+  );
+
+  // Group consecutive memories under a month header so the gallery stays
+  // scannable as it grows, matching the same pattern used on /events.
+  const grouped: { label: string; items: Memory[] }[] = [];
+  for (const memory of sorted) {
+    const label = new Date(effectiveDate(memory)).toLocaleString("en-US", { month: "long", year: "numeric" });
+    const current = grouped[grouped.length - 1];
+    if (current && current.label === label) {
+      current.items.push(memory);
+    } else {
+      grouped.push({ label, items: [memory] });
+    }
+  }
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-20">
@@ -105,15 +107,23 @@ export default async function MemoriesPage() {
           will fill in fast after the next meetup.
         </p>
       ) : (
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {sorted.map((memory) => (
-            <MemoryCard
-              key={memory.id}
-              memory={memory}
-              cover={memory.thumbnail_url || autoThumbnails.get(memory.id) || null}
-              resolvedTitle={memory.title || autoTitles.get(memory.id) || null}
-              resolvedCaption={memory.caption || autoCaptions.get(memory.id) || null}
-            />
+        <div className="mt-12 space-y-12">
+          {grouped.map((group) => (
+            <div key={group.label}>
+              <p className="eyebrow mb-4">{group.label}</p>
+              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {group.items.map((memory) => (
+                  <MemoryCard
+                    key={memory.id}
+                    memory={memory}
+                    cover={memory.thumbnail_url || autoThumbnails.get(memory.id) || null}
+                    resolvedTitle={memory.title || autoTitles.get(memory.id) || null}
+                    resolvedCaption={memory.caption || autoCaptions.get(memory.id) || null}
+                    date={effectiveDate(memory)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -126,11 +136,13 @@ function MemoryCard({
   cover,
   resolvedTitle,
   resolvedCaption,
+  date,
 }: {
   memory: Memory;
   cover: string | null;
   resolvedTitle: string | null;
   resolvedCaption: string | null;
+  date: string;
 }) {
   const embed = getVideoEmbed(memory.image_url);
   const isVideo = detectMediaType(memory.image_url) === "video";
@@ -188,21 +200,24 @@ function MemoryCard({
         ) : null}
       </div>
 
-      {resolvedTitle || resolvedCaption ? (
-        <figcaption className="space-y-1.5 p-5">
+      <figcaption className="space-y-1.5 p-5">
+        <div className="flex flex-wrap items-center gap-2">
           {isVideo ? (
             <p className="eyebrow">
               {embed ? (embed.provider === "youtube" ? "YouTube" : "Vimeo") : "Video"}
             </p>
           ) : null}
-          {resolvedTitle ? (
-            <p className="font-voice text-base text-parchment">{resolvedTitle}</p>
-          ) : null}
-          {resolvedCaption ? (
-            <p className="text-sm leading-relaxed text-muted">{resolvedCaption}</p>
-          ) : null}
-        </figcaption>
-      ) : null}
+          <p className="text-xs text-muted">
+            {new Date(date).toLocaleDateString("en-US", { dateStyle: "medium" })}
+          </p>
+        </div>
+        {resolvedTitle ? (
+          <p className="font-voice text-base text-parchment">{resolvedTitle}</p>
+        ) : null}
+        {resolvedCaption ? (
+          <p className="text-sm leading-relaxed text-muted">{resolvedCaption}</p>
+        ) : null}
+      </figcaption>
     </figure>
   );
 }
