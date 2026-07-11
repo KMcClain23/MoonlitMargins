@@ -13,7 +13,7 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-14">
         <div className="grid gap-10 md:grid-cols-3">
           <div>
-            <p className="font-voice text-lg text-parchment">Moonlit Margins</p>
+            <p className="font-voice text-lg text-parchment">Moonlit Margins Sisterhood</p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
               A sisterhood of readers across the country, connected through
               stories and showing up for each other.

@@ -19,7 +19,7 @@ const PERKS = [
   },
   {
     title: "A welcome swag box",
-    body: "The moment you join, a curated box of Moonlit Margins goodies lands on your doorstep.",
+    body: "The moment you join, a curated box of Moonlit Margins Sisterhood goodies lands on your doorstep.",
   },
   {
     title: "Monthly rewards",
@@ -109,7 +109,7 @@ export default function Home() {
             </p>
             <p className="mt-6 text-base leading-relaxed text-parchment/90">
               We aren&rsquo;t here for surface-level talk or passing trends.
-              Moonlit Margins started as a handful of women who wanted a book
+              Moonlit Margins Sisterhood started as a handful of women who wanted a book
               club that actually meant something, a place to talk about the
               stories that stay with you, and the people going through life
               alongside you. It grew into a sisterhood with members across
