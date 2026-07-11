@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import MoonFlameMark from "@/components/icons/MoonFlameMark";
 import SearchOverlay from "@/components/SearchOverlay";
 
@@ -14,9 +15,37 @@ const NAV_LINKS = [
 ];
 
 export default function Header() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clicking the logo normally goes home. Three clicks in quick succession
+  // is a quiet way into the admin login, without a visible link anywhere.
+  // Every click has to wait out a short window before deciding where to go
+  // (can't know in advance whether a click is the start of a triple-click),
+  // so a single click has a brief, near-imperceptible delay before
+  // navigating home -- the tradeoff that makes the secret entrance possible.
+  function handleLogoClick(e: React.MouseEvent) {
+    e.preventDefault();
+    logoClickCount.current += 1;
+
+    if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
+
+    if (logoClickCount.current >= 3) {
+      logoClickCount.current = 0;
+      router.push("/admin/login");
+      return;
+    }
+
+    logoClickTimer.current = setTimeout(() => {
+      logoClickCount.current = 0;
+      router.push("/");
+    }, 500);
+  }
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -41,7 +70,11 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-hairline bg-ink/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 font-voice text-lg tracking-wide text-parchment">
+        <Link
+          href="/"
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 font-voice text-lg tracking-wide text-parchment"
+        >
           <MoonFlameMark size={26} />
           Moonlit Margins Sisterhood
         </Link>
