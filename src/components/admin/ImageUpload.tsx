@@ -69,7 +69,7 @@ export default function ImageUpload({
       <div className="flex items-start gap-3">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-hairline bg-ink">
           {value ? (
-            <Image src={value} alt="" fill sizes="64px" className="object-cover" unoptimized />
+            <Image src={value} alt="" fill sizes="64px" className="object-cover" />
           ) : null}
         </div>
 

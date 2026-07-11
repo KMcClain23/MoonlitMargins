@@ -2,10 +2,22 @@
 // public sisterhood page and inside the admin photo positioner, so the
 // editor preview always matches what visitors actually see.
 //
-// Plain <img> rather than next/image: the zoom/pan transform needs direct
-// control over the image box's width/height/transform, which doesn't play
-// well with next/image's `fill` mode. Avatars are small enough that losing
-// automatic optimization here isn't a meaningful cost.
+// Plain <img> rather than the next/image component: the zoom/pan transform
+// needs direct control over the image box's width/height/transform, which
+// doesn't play well with next/image's `fill` mode. The src is still routed
+// through Next's built-in image optimizer manually (see optimizedSrc below)
+// so this isn't giving up server-side resampling, just the <Image>
+// component's own layout/fill behavior.
+
+// Requests a properly server-side-resampled version via Next's built-in
+// image optimizer, instead of handing the browser a raw (often multi-
+// megapixel) original to squeeze down via CSS alone. That's what was
+// causing the blurry/grainy look -- a single huge browser-side scale-down,
+// especially under a CSS transform, resamples much worse than letting
+// Next's optimizer downsize it properly first.
+function optimizedSrc(src: string, width: number) {
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=85`;
+}
 
 export default function MemberAvatarImage({
   src,
@@ -34,7 +46,7 @@ export default function MemberAvatarImage({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={optimizedSrc(src, 384)}
         alt={alt}
         style={{
           position: "absolute",
