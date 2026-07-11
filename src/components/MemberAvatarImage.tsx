@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 // Renders an avatar image with a stored zoom + pan applied. Used both on the
 // public sisterhood page and inside the admin photo positioner, so the
 // editor preview always matches what visitors actually see.
@@ -19,45 +21,53 @@ function optimizedSrc(src: string, width: number) {
   return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=85`;
 }
 
-export default function MemberAvatarImage({
-  src,
-  alt,
-  size,
-  zoom = 1,
-  offsetX = 0,
-  offsetY = 0,
-  className,
-}: {
-  src: string;
-  alt: string;
-  size: number;
-  zoom?: number;
-  offsetX?: number;
-  offsetY?: number;
-  className?: string;
-}) {
+// Shared with PhotoPositioner, which writes these same values directly to
+// the DOM during a drag (bypassing React) for a smooth 60fps feel, then
+// only commits to React state once the drag ends. Keeping the math in one
+// place means the live-drag visual and the "settled" render always agree.
+export function avatarTransformStyle(zoom: number, offsetX: number, offsetY: number, size: number) {
   const translateX = (offsetX / 100) * size;
   const translateY = (offsetY / 100) * size;
+  return {
+    width: `${100 * zoom}%`,
+    height: `${100 * zoom}%`,
+    transform: `translate(-50%, -50%) translate(${translateX}px, ${translateY}px)`,
+  };
+}
+
+const MemberAvatarImage = forwardRef<
+  HTMLImageElement,
+  {
+    src: string;
+    alt: string;
+    size: number;
+    zoom?: number;
+    offsetX?: number;
+    offsetY?: number;
+    className?: string;
+  }
+>(function MemberAvatarImage({ src, alt, size, zoom = 1, offsetX = 0, offsetY = 0, className }, ref) {
+  const { width, height, transform } = avatarTransformStyle(zoom, offsetX, offsetY, size);
 
   return (
-    <div
-      className={`relative overflow-hidden ${className ?? ""}`}
-      style={{ width: size, height: size }}
-    >
+    <div className={`relative overflow-hidden ${className ?? ""}`} style={{ width: size, height: size }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        ref={ref}
         src={optimizedSrc(src, 384)}
         alt={alt}
         style={{
           position: "absolute",
           top: "50%",
           left: "50%",
-          width: `${100 * zoom}%`,
-          height: `${100 * zoom}%`,
+          width,
+          height,
           objectFit: "cover",
-          transform: `translate(-50%, -50%) translate(${translateX}px, ${translateY}px)`,
+          transform,
         }}
       />
     </div>
   );
-}
+});
+
+export default MemberAvatarImage;

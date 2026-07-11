@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import MemberAvatarImage from "@/components/MemberAvatarImage";
+import MemberAvatarImage, { avatarTransformStyle } from "@/components/MemberAvatarImage";
 
 const PREVIEW_SIZE = 160;
 
@@ -19,10 +19,29 @@ export default function PhotoPositioner({
   onChange: (next: { zoom: number; offsetX: number; offsetY: number }) => void;
 }) {
   const [dragging, setDragging] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
   const dragStart = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+
+  // Tracks the live offset during a drag without touching React state, so
+  // the image moves via direct DOM writes on every pointermove (smooth,
+  // no re-render) instead of re-rendering the whole form on every pixel of
+  // movement -- pointer events fire dozens of times a second, and a full
+  // React re-render per event is what was causing the jankiness. React
+  // state (via onChange) is only updated once, when the drag ends.
+  const liveOffset = useRef({ offsetX, offsetY });
 
   function clamp(n: number) {
     return Math.min(50, Math.max(-50, n));
+  }
+
+  function applyLiveTransform(nextOffsetX: number, nextOffsetY: number) {
+    liveOffset.current = { offsetX: nextOffsetX, offsetY: nextOffsetY };
+    if (imgRef.current) {
+      const { width, height, transform } = avatarTransformStyle(zoom, nextOffsetX, nextOffsetY, PREVIEW_SIZE);
+      imgRef.current.style.width = width;
+      imgRef.current.style.height = height;
+      imgRef.current.style.transform = transform;
+    }
   }
 
   function handlePointerDown(e: React.PointerEvent) {
@@ -35,14 +54,15 @@ export default function PhotoPositioner({
     if (!dragging || !dragStart.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    // Dragging the photo right should reveal more of its left side, so the
-    // stored offset moves opposite to the pointer's on-screen movement.
     const nextOffsetX = clamp(dragStart.current.offsetX - (dx / PREVIEW_SIZE) * 100);
     const nextOffsetY = clamp(dragStart.current.offsetY - (dy / PREVIEW_SIZE) * 100);
-    onChange({ zoom, offsetX: nextOffsetX, offsetY: nextOffsetY });
+    applyLiveTransform(nextOffsetX, nextOffsetY);
   }
 
   function handlePointerUp() {
+    if (dragging) {
+      onChange({ zoom, offsetX: liveOffset.current.offsetX, offsetY: liveOffset.current.offsetY });
+    }
     setDragging(false);
     dragStart.current = null;
   }
@@ -58,6 +78,7 @@ export default function PhotoPositioner({
         style={{ touchAction: "none" }}
       >
         <MemberAvatarImage
+          ref={imgRef}
           src={imageUrl}
           alt=""
           size={PREVIEW_SIZE}
