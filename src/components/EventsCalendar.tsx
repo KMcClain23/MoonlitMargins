@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import Image from "next/image";
 
 type EventRow = {
   id: string;
@@ -12,6 +13,7 @@ type EventRow = {
   starts_at: string;
   location: string | null;
   link_url: string | null;
+  cover_image_url: string | null;
   status: "scheduled" | "canceled";
 };
 
@@ -66,6 +68,15 @@ export default function EventsCalendar({ events }: { events: EventRow[] }) {
   }
 
   const selectedEvents = selectedDay ? eventsByDay.get(selectedDay) ?? [] : [];
+
+  useEffect(() => {
+    if (!selectedDay) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setSelectedDay(null);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedDay]);
 
   return (
     <div>
@@ -157,40 +168,68 @@ export default function EventsCalendar({ events }: { events: EventRow[] }) {
       </div>
 
       {selectedDay && selectedEvents.length > 0 && selectedEvents[0] ? (
-        <div className="mt-8 space-y-3">
-          <p className="eyebrow">
-            {new Date(selectedEvents[0].starts_at).toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-          {selectedEvents.map((event) => (
-            <Link
-              key={event.id}
-              href={`/events/${event.slug}`}
-              className={`block rounded-2xl border border-hairline bg-surface p-5 transition-colors hover:border-lilac/60 ${
-                event.status === "canceled" ? "opacity-60" : ""
-              }`}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="eyebrow mb-1">{TYPE_LABELS[event.event_type] ?? "Event"}</p>
-                {event.status === "canceled" ? (
-                  <span className="rounded-full border border-candle/40 px-2 py-0.5 text-[10px] text-candle">
-                    Canceled
-                  </span>
-                ) : null}
-              </div>
-              <p className="font-voice text-lg text-parchment">{event.title}</p>
-              <p className="mt-1 text-sm text-lilac-soft">
-                {new Date(event.starts_at).toLocaleTimeString("en-US", { timeStyle: "short" })}
-                {event.location ? ` · ${event.location}` : ""}
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedDay(null)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-hairline bg-surface p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <p className="eyebrow">
+                {new Date(selectedEvents[0].starts_at).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
               </p>
-              {event.description ? (
-                <p className="mt-2 text-sm leading-relaxed text-muted">{event.description}</p>
-              ) : null}
-            </Link>
-          ))}
+              <button
+                onClick={() => setSelectedDay(null)}
+                aria-label="Close"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-hairline text-muted transition-colors hover:border-parchment hover:text-parchment"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {selectedEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.slug}`}
+                  className={`flex gap-4 rounded-2xl border border-hairline bg-surfaceRaised p-4 transition-colors hover:border-lilac/60 ${
+                    event.status === "canceled" ? "opacity-60" : ""
+                  }`}
+                >
+                  {event.cover_image_url ? (
+                    <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-ink">
+                      <Image src={event.cover_image_url} alt="" fill sizes="64px" className="object-cover" />
+                    </div>
+                  ) : null}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="eyebrow mb-1">{TYPE_LABELS[event.event_type] ?? "Event"}</p>
+                      {event.status === "canceled" ? (
+                        <span className="mb-1 rounded-full border border-candle/40 px-2 py-0.5 text-[10px] text-candle">
+                          Canceled
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="font-voice text-lg text-parchment">{event.title}</p>
+                    <p className="mt-1 text-sm text-lilac-soft">
+                      {new Date(event.starts_at).toLocaleTimeString("en-US", { timeStyle: "short" })}
+                      {event.location ? ` · ${event.location}` : ""}
+                    </p>
+                    {event.description ? (
+                      <p className="mt-2 text-sm leading-relaxed text-muted">{event.description}</p>
+                    ) : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
