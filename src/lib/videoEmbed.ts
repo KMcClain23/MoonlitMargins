@@ -35,7 +35,7 @@ const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".m4v"];
 export function detectMediaType(url: string): "image" | "video" {
   if (!url) return "image";
   if (getVideoEmbed(url)) return "video";
-  const path = url.toLowerCase().split("?")[0];
+  const path = url.toLowerCase().split("?")[0] ?? "";
   return VIDEO_EXTENSIONS.some((ext) => path.endsWith(ext)) ? "video" : "image";
 }
 

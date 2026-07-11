@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const KIND_LABELS: Record<string, string> = {
+const KIND_LABELS: Record<"member" | "interview" | "collab", string> = {
   member: "Membership application",
   interview: "Interview request",
   collab: "Author collaboration",
