@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -26,6 +27,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Could not delete member" }, { status: 500 });
   }
 
+  revalidatePath("/sisterhood");
   return NextResponse.json({ success: true });
 }
 
@@ -61,5 +63,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Could not update member" }, { status: 500 });
   }
 
+  revalidatePath("/sisterhood");
   return NextResponse.json({ success: true });
 }

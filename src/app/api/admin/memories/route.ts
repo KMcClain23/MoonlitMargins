@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { detectMediaType } from "@/lib/videoEmbed";
@@ -30,5 +31,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not add memory" }, { status: 500 });
   }
 
+  revalidatePath("/memories");
   return NextResponse.json({ success: true });
 }

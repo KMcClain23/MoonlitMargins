@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -26,6 +27,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Could not delete event" }, { status: 500 });
   }
 
+  revalidatePath("/events");
   return NextResponse.json({ success: true });
 }
 
@@ -42,7 +44,7 @@ export async function PATCH(
   const { title, description, eventType, startsAt, location, linkUrl, coverImageUrl, registrationType, status } =
     parsed.data;
   const supabase = supabaseServer();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .update({
       title,
@@ -55,11 +57,15 @@ export async function PATCH(
       registration_type: registrationType ?? "rsvp",
       status: status ?? "scheduled",
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("slug")
+    .single();
 
   if (error) {
     return NextResponse.json({ error: "Could not update event" }, { status: 500 });
   }
 
+  revalidatePath("/events");
+  if (data?.slug) revalidatePath(`/events/${data.slug}`);
   return NextResponse.json({ success: true });
 }

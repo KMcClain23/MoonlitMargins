@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -39,5 +40,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not add member" }, { status: 500 });
   }
 
+  revalidatePath("/sisterhood");
   return NextResponse.json({ success: true });
 }
