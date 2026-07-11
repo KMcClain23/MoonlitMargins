@@ -54,8 +54,11 @@ export default function PhotoPositioner({
     if (!dragging || !dragStart.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    const nextOffsetX = clamp(dragStart.current.offsetX - (dx / PREVIEW_SIZE) * 100);
-    const nextOffsetY = clamp(dragStart.current.offsetY - (dy / PREVIEW_SIZE) * 100);
+    // Divide by zoom too, so the image keeps tracking the cursor 1:1 in
+    // screen pixels no matter the current zoom level (matches
+    // avatarTransformStyle's zoom-scaled translate -- see its comment).
+    const nextOffsetX = clamp(dragStart.current.offsetX - (dx / (PREVIEW_SIZE * zoom)) * 100);
+    const nextOffsetY = clamp(dragStart.current.offsetY - (dy / (PREVIEW_SIZE * zoom)) * 100);
     applyLiveTransform(nextOffsetX, nextOffsetY);
   }
 

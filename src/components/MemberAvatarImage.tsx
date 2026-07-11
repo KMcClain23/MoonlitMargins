@@ -26,8 +26,14 @@ function optimizedSrc(src: string, width: number) {
 // only commits to React state once the drag ends. Keeping the math in one
 // place means the live-drag visual and the "settled" render always agree.
 export function avatarTransformStyle(zoom: number, offsetX: number, offsetY: number, size: number) {
-  const translateX = (offsetX / 100) * size;
-  const translateY = (offsetY / 100) * size;
+  // Scaled by zoom so a stored offset always represents the same relative
+  // position on the image, regardless of the current zoom level. Without
+  // this, the pan is a fixed pixel shift -- at higher zoom that same shift
+  // is a shrinking fraction of the now-larger image, so zooming in (without
+  // re-dragging) drifts the crop back toward the image's raw geometric
+  // center instead of staying on whatever was panned into view.
+  const translateX = (offsetX / 100) * size * zoom;
+  const translateY = (offsetY / 100) * size * zoom;
   return {
     width: `${100 * zoom}%`,
     height: `${100 * zoom}%`,
