@@ -11,6 +11,7 @@ type Memory = {
   id: string;
   image_url: string;
   thumbnail_url: string | null;
+  title: string | null;
   caption: string | null;
 };
 

@@ -8,7 +8,7 @@ async function getMemories() {
   const supabase = supabaseServer();
   const { data } = await supabase
     .from("memories")
-    .select("id, image_url, thumbnail_url, caption")
+    .select("id, image_url, thumbnail_url, title, caption")
     .order("created_at", { ascending: false });
   return data ?? [];
 }

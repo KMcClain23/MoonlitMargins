@@ -6,6 +6,7 @@ import { detectMediaType } from "@/lib/videoEmbed";
 const memorySchema = z.object({
   imageUrl: z.string().min(5),
   thumbnailUrl: z.string().optional(),
+  title: z.string().optional(),
   caption: z.string().optional(),
 });
 
@@ -15,12 +16,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { imageUrl, thumbnailUrl, caption } = parsed.data;
+  const { imageUrl, thumbnailUrl, title, caption } = parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase.from("memories").insert({
     media_type: detectMediaType(imageUrl),
     image_url: imageUrl,
     thumbnail_url: thumbnailUrl || null,
+    title: title || null,
     caption: caption || null,
   });
 

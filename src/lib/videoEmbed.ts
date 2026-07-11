@@ -61,3 +61,22 @@ export async function resolveVideoThumbnail(url: string): Promise<string | null>
 
   return null;
 }
+
+export async function resolveVideoTitle(url: string): Promise<string | null> {
+  const embed = getVideoEmbed(url);
+  if (!embed) return null;
+
+  const oembedUrl =
+    embed.provider === "youtube"
+      ? `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+      : `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`;
+
+  try {
+    const res = await fetch(oembedUrl);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.title === "string" ? data.title : null;
+  } catch {
+    return null;
+  }
+}

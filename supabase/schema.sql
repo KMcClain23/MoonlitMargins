@@ -62,6 +62,7 @@ create table if not exists memories (
   media_type text not null default 'image' check (media_type in ('image', 'video')),
   image_url text not null,
   thumbnail_url text,
+  title text,
   caption text,
   event_id uuid references events (id) on delete set null,
   created_at timestamptz not null default now()

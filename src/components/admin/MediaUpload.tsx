@@ -7,15 +7,22 @@ import { getVideoEmbed, detectMediaType } from "@/lib/videoEmbed";
 export default function MediaUpload({
   name,
   initialValue,
+  onValueChange,
 }: {
   name: string;
   initialValue?: string | null;
+  onValueChange?: (value: string) => void;
 }) {
-  const [value, setValue] = useState(initialValue ?? "");
+  const [value, setValueState] = useState(initialValue ?? "");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [embedThumbnail, setEmbedThumbnail] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function setValue(next: string) {
+    setValueState(next);
+    onValueChange?.(next);
+  }
 
   const embed = getVideoEmbed(value);
   const mediaType = detectMediaType(value);
