@@ -19,6 +19,22 @@ type Task = {
 
 type CurrentUser = { adminUserId: string; memberId: string | null; role: "owner" | "admin" | "editor" };
 
+// due_date/proposed_due_date are plain "YYYY-MM-DD" dates (no time-of-day),
+// but `new Date("YYYY-MM-DD")` parses that as UTC midnight -- displaying it
+// with toLocaleDateString then renders in the *local* timezone, which
+// silently shifts it a day earlier for anyone west of UTC (e.g. Aug 15
+// UTC-midnight shows as "Aug 14" in US timezones). Parsing the parts into
+// the local-time Date constructor instead avoids any timezone conversion,
+// since a calendar date should always mean the same date everywhere.
+function parseDateOnly(dateString: string) {
+  const parts = dateString.split("-").map(Number);
+  return new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
+}
+
+function formatDateOnly(dateString: string) {
+  return parseDateOnly(dateString).toLocaleDateString("en-US", { dateStyle: "medium" });
+}
+
 const STATUS_LABELS: Record<Task["status"], string> = {
   todo: "To do",
   in_progress: "In progress",
@@ -51,7 +67,7 @@ export default function TaskRow({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const isOverdue = task.due_date && task.status !== "done" && new Date(task.due_date) < new Date();
+  const isOverdue = task.due_date && task.status !== "done" && parseDateOnly(task.due_date) < new Date();
 
   const canRespondAsAssignee =
     Boolean(currentUser) &&
@@ -223,7 +239,7 @@ export default function TaskRow({
           <p className="mt-1 text-xs text-muted">
             {assigneeName ? `Assigned to ${assigneeName}` : "Unassigned"} · Created by {assignerName}
             {task.due_date
-              ? ` · Due ${new Date(task.due_date).toLocaleDateString("en-US", { dateStyle: "medium" })}`
+              ? ` · Due ${formatDateOnly(task.due_date)}`
               : ""}
           </p>
           {task.description ? <p className="mt-2 text-sm text-muted">{task.description}</p> : null}
@@ -294,9 +310,7 @@ export default function TaskRow({
               <p className="text-sm text-parchment">
                 {assigneeName ?? "The assignee"} proposed{" "}
                 <strong>
-                  {task.proposed_due_date
-                    ? new Date(task.proposed_due_date).toLocaleDateString("en-US", { dateStyle: "medium" })
-                    : "a new date"}
+                  {task.proposed_due_date ? formatDateOnly(task.proposed_due_date) : "a new date"}
                 </strong>
                 .
               </p>
