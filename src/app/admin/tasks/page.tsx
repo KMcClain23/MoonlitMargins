@@ -24,10 +24,16 @@ export default async function AdminTasksPage() {
     .select("id, full_name")
     .order("full_name", { ascending: true });
 
-  const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name");
+  const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name, member_id");
 
   const memberNames = new Map((members ?? []).map((m) => [m.id, m.full_name]));
   const adminUserNames = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
+
+  // Members who have their own admin_users login -- an owner/admin should
+  // only be able to accept/propose "on behalf of" someone who has NO way
+  // to respond themselves. If the assignee has their own account, they
+  // (and only they) should handle their own task.
+  const membersWithLogin = new Set((adminUsers ?? []).map((u) => u.member_id).filter(Boolean));
 
   return (
     <div>
@@ -46,6 +52,7 @@ export default async function AdminTasksPage() {
               key={task.id}
               task={task}
               assigneeName={task.assigned_to ? memberNames.get(task.assigned_to) ?? "Unknown" : null}
+              assigneeHasLogin={task.assigned_to ? membersWithLogin.has(task.assigned_to) : false}
               assignerName={adminUserNames.get(task.assigned_by) ?? "Unknown"}
               members={members ?? []}
               currentUser={

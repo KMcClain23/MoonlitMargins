@@ -26,17 +26,30 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { title, description, assignedTo, dueDate, status } = parsed.data;
   const supabase = supabaseServer();
 
-  const { error } = await supabase
-    .from("tasks")
-    .update({
-      title,
-      description: description || null,
-      assigned_to: assignedTo || null,
-      due_date: dueDate || null,
-      status,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
+  const { data: current } = await supabase.from("tasks").select("assigned_to").eq("id", id).single();
+  const newAssignedTo = assignedTo || null;
+  const isReassignment = current && current.assigned_to !== newAssignedTo;
+
+  const update: Record<string, unknown> = {
+    title,
+    description: description || null,
+    assigned_to: newAssignedTo,
+    due_date: dueDate || null,
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  // A new assignee never inherits the previous person's acceptance --
+  // start fresh so they get their own chance to accept or propose a
+  // different date, rather than the task silently staying "accepted" (or
+  // showing someone else's proposal) for a person who never saw it.
+  if (isReassignment) {
+    update.acceptance_status = "pending";
+    update.proposed_due_date = null;
+    update.response_message = null;
+  }
+
+  const { error } = await supabase.from("tasks").update(update).eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: "Could not update task" }, { status: 500 });

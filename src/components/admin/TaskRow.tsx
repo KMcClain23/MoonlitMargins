@@ -44,12 +44,14 @@ const STATUS_LABELS: Record<Task["status"], string> = {
 export default function TaskRow({
   task,
   assigneeName,
+  assigneeHasLogin,
   assignerName,
   members,
   currentUser,
 }: {
   task: Task;
   assigneeName: string | null;
+  assigneeHasLogin: boolean;
   assignerName: string;
   members: { id: string; full_name: string }[];
   currentUser: CurrentUser | null;
@@ -69,9 +71,17 @@ export default function TaskRow({
 
   const isOverdue = task.due_date && task.status !== "done" && parseDateOnly(task.due_date) < new Date();
 
-  const canRespondAsAssignee =
-    Boolean(currentUser) &&
-    (currentUser!.memberId === task.assigned_to || currentUser!.role === "owner" || currentUser!.role === "admin");
+  const isActualAssignee = Boolean(currentUser) && currentUser!.memberId === task.assigned_to;
+  // Owner/admin can only act "on behalf of" the assignee when that person
+  // has no login of their own -- if they DO have an account (like Kaya),
+  // only they should accept/propose their own task. Otherwise every task
+  // assigned to someone with real backend access would show a confusing
+  // Accept button to anyone with admin/owner rights, as if it were theirs
+  // to accept.
+  const canActOnBehalf =
+    Boolean(currentUser) && (currentUser!.role === "owner" || currentUser!.role === "admin") && !assigneeHasLogin;
+  const canRespondAsAssignee = isActualAssignee || canActOnBehalf;
+  const canReassign = Boolean(currentUser) && (currentUser!.role === "owner" || currentUser!.role === "admin");
   const canRespondAsAssigner =
     Boolean(currentUser) && (currentUser!.adminUserId === task.assigned_by || currentUser!.role === "owner");
 
@@ -300,9 +310,16 @@ export default function TaskRow({
           ) : null}
 
           {task.acceptance_status === "pending" && !canRespondAsAssignee ? (
-            <p className="mt-3 text-xs text-muted">
-              Waiting on {assigneeName ?? "the assignee"} to accept or propose a different date.
-            </p>
+            <div className="mt-3 flex items-center gap-3">
+              <p className="text-xs text-muted">
+                Waiting on {assigneeName ?? "the assignee"} to accept or propose a different date.
+              </p>
+              {canReassign ? (
+                <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
+                  Reassign
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
           {task.acceptance_status === "proposed_change" ? (
