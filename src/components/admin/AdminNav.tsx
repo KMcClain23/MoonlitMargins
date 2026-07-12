@@ -68,27 +68,12 @@ export default function AdminNav() {
 
   return (
     <header className="border-b border-hairline">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-8">
-          <span className="font-voice text-base text-parchment">
-            Moonlit Margins Sisterhood <span className="text-muted">Admin</span>
-          </span>
-          <nav className="hidden gap-6 sm:flex">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`text-sm transition-colors ${
-                  pathname?.startsWith(tab.href)
-                    ? "text-parchment"
-                    : "text-muted hover:text-parchment"
-                }`}
-              >
-                {SECTION_LABELS[tab.section]}
-              </Link>
-            ))}
-          </nav>
-        </div>
+      {/* Row 1: brand + account/utility links */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        <span className="font-voice text-base text-parchment">
+          Moonlit Margins Sisterhood <span className="text-muted">Admin</span>
+        </span>
+
         <div className="hidden items-center gap-4 sm:flex">
           {session ? (
             <Link href="/admin/account" className="text-sm text-muted hover:text-parchment">
@@ -120,6 +105,28 @@ export default function AdminNav() {
             </svg>
           )}
         </button>
+      </div>
+
+      {/* Row 2: section tabs, underline-style active indicator */}
+      <div className="hidden border-t border-hairline/60 sm:block">
+        <nav className="mx-auto flex max-w-6xl gap-8 px-6">
+          {tabs.map((tab) => {
+            const active = pathname?.startsWith(tab.href);
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`border-b-2 py-3 text-sm transition-colors ${
+                  active
+                    ? "border-lilac text-parchment"
+                    : "border-transparent text-muted hover:text-parchment"
+                }`}
+              >
+                {SECTION_LABELS[tab.section]}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
       {menuOpen ? (
