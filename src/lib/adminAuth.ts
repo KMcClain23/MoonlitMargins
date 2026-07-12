@@ -10,6 +10,7 @@ export type AdminSession = {
   fullName: string;
   role: AdminRole;
   sections: AdminSection[];
+  mustChangePassword: boolean;
   expiry: number;
 };
 

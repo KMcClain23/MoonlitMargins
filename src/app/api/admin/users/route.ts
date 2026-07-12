@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     role,
     member_id: memberId || null,
     allowed_sections: allowedSections && allowedSections.length > 0 ? allowedSections : null,
+    must_change_password: true,
   });
 
   if (error) {

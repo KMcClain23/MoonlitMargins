@@ -46,6 +46,26 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Still on a temporary password (freshly created, or reset by someone
+  // else) -- block everything except the account page itself, changing the
+  // password, and signing out, until a real password is set. /api/admin/me
+  // has to stay reachable too: both AccountPage (to know whether to show
+  // the "temporary password" banner) and AdminNav (to know the signed-in
+  // person's session at all) depend on it, and without it those requests
+  // 403 and leave every page acting as if no one is logged in.
+  const CHANGE_PASSWORD_EXCEPTIONS = [
+    "/admin/account",
+    "/api/admin/account/password",
+    "/api/admin/logout",
+    "/api/admin/me",
+  ];
+  if (session?.mustChangePassword && !CHANGE_PASSWORD_EXCEPTIONS.includes(pathname)) {
+    if (isAdminApi) {
+      return NextResponse.json({ error: "Change your password before continuing" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/admin/account", request.url));
+  }
+
   return NextResponse.next();
 }
 

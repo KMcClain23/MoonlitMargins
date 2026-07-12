@@ -15,5 +15,6 @@ export async function GET(request: NextRequest) {
     fullName: session.fullName,
     role: session.role,
     sections: session.sections,
+    mustChangePassword: session.mustChangePassword,
   });
 }

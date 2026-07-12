@@ -36,6 +36,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   };
   if (newPassword) {
     update.password_hash = hashPassword(newPassword);
+    update.must_change_password = true;
   }
 
   const { error } = await supabase.from("admin_users").update(update).eq("id", id);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
@@ -9,6 +9,12 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inactiveNotice, setInactiveNotice] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reason") === "inactive") setInactiveNotice(true);
+  }, []);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -36,6 +42,11 @@ export default function AdminLoginPage() {
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col justify-center px-6">
       <p className="eyebrow mb-3">Leadership only</p>
       <h1 className="font-voice text-3xl text-parchment">Admin sign in</h1>
+      {inactiveNotice ? (
+        <p className="mt-3 text-sm text-muted">
+          You were signed out after 30 minutes of inactivity. Sign back in to continue.
+        </p>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <label className="block">
