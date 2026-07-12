@@ -3,20 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { SECTION_LABELS, type AdminSection } from "@/lib/adminSections";
 
-const TABS = [
-  { href: "/admin/applications", label: "Applications" },
-  { href: "/admin/events", label: "Events" },
-  { href: "/admin/members", label: "Members" },
-  { href: "/admin/memories", label: "Memories" },
+const ALL_TABS: { href: string; section: AdminSection }[] = [
+  { href: "/admin/applications", section: "applications" },
+  { href: "/admin/events", section: "events" },
+  { href: "/admin/members", section: "members" },
+  { href: "/admin/memories", section: "memories" },
+  { href: "/admin/tasks", section: "tasks" },
+  { href: "/admin/users", section: "users" },
 ];
+
+type Session = { fullName: string; role: string; sections: AdminSection[] };
 
 export default function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setSession(data))
+      .catch(() => setSession(null));
+  }, [pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -42,6 +55,11 @@ export default function AdminNav() {
     return null;
   }
 
+  // Only show links to sections this person actually has access to --
+  // middleware already enforces this server-side, but showing a dead-end
+  // link that just bounces you elsewhere isn't good nav UX.
+  const tabs = ALL_TABS.filter((tab) => !session || session.sections.includes(tab.section));
+
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
@@ -56,7 +74,7 @@ export default function AdminNav() {
             Moonlit Margins Sisterhood <span className="text-muted">Admin</span>
           </span>
           <nav className="hidden gap-6 sm:flex">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <Link
                 key={tab.href}
                 href={tab.href}
@@ -66,12 +84,17 @@ export default function AdminNav() {
                     : "text-muted hover:text-parchment"
                 }`}
               >
-                {tab.label}
+                {SECTION_LABELS[tab.section]}
               </Link>
             ))}
           </nav>
         </div>
         <div className="hidden items-center gap-4 sm:flex">
+          {session ? (
+            <Link href="/admin/account" className="text-sm text-muted hover:text-parchment">
+              {session.fullName}
+            </Link>
+          ) : null}
           <Link href="/" className="text-sm text-muted hover:text-parchment">
             View site ↗
           </Link>
@@ -102,7 +125,7 @@ export default function AdminNav() {
       {menuOpen ? (
         <div ref={menuRef} className="border-t border-hairline px-6 py-4 sm:hidden">
           <nav className="flex flex-col gap-1">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <Link
                 key={tab.href}
                 href={tab.href}
@@ -113,9 +136,18 @@ export default function AdminNav() {
                     : "text-muted hover:bg-surface hover:text-parchment"
                 }`}
               >
-                {tab.label}
+                {SECTION_LABELS[tab.section]}
               </Link>
             ))}
+            {session ? (
+              <Link
+                href="/admin/account"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-2 py-2.5 text-sm text-muted transition-colors hover:bg-surface hover:text-parchment"
+              >
+                {session.fullName} (account)
+              </Link>
+            ) : null}
             <div className="mt-2 flex items-center justify-between border-t border-hairline pt-3">
               <Link href="/" className="text-sm text-muted hover:text-parchment">
                 View site ↗

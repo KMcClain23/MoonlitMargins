@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,13 +18,13 @@ export default function AdminLoginPage() {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
 
     setLoading(false);
 
     if (!res.ok) {
-      setError("Incorrect password.");
+      setError("Incorrect email or password.");
       return;
     }
 
@@ -38,13 +39,24 @@ export default function AdminLoginPage() {
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <label className="block">
+          <span className="mb-2 block text-sm text-muted">Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+            className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac"
+          />
+        </label>
+
+        <label className="block">
           <span className="mb-2 block text-sm text-muted">Password</span>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            autoFocus
             className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac"
           />
         </label>
