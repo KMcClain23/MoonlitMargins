@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ALL_SECTIONS, SECTION_LABELS, type AdminSection } from "@/lib/adminSections";
+import HelpTip from "@/components/admin/HelpTip";
 
 type User = {
   id: string;
@@ -71,7 +72,23 @@ export default function UserRow({ user }: { user: User }) {
         <p className="font-voice text-lg text-parchment">{user.full_name}</p>
 
         <label className="block max-w-xs">
-          <span className="mb-2 block text-sm text-muted">Role</span>
+          <span className="mb-2 flex items-center text-sm text-muted">
+            Role
+            <HelpTip>
+              <p className="text-parchment">
+                <strong>Owner</strong> — full access, plus creating and managing other admin
+                accounts and permissions.
+              </p>
+              <p className="mt-2 text-parchment">
+                <strong>Admin</strong> — full access to Applications, Events, Members, Memories,
+                and Tasks. Cannot manage other users.
+              </p>
+              <p className="mt-2 text-parchment">
+                <strong>Editor</strong> — limited to Events, Memories, and Tasks by default. Use
+                the custom section option below to change that.
+              </p>
+            </HelpTip>
+          </span>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as typeof role)}
@@ -92,6 +109,11 @@ export default function UserRow({ user }: { user: User }) {
               className="h-4 w-4 rounded border-hairline"
             />
             Custom section access instead of the role default
+            <HelpTip>
+              Each role comes with a default set of sections it can see. Turn this on to pick an
+              exact custom set instead — useful if someone needs, say, Events access but nothing
+              else, which doesn&rsquo;t match any role&rsquo;s default.
+            </HelpTip>
           </label>
           {useOverride ? (
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">

@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ALL_SECTIONS, SECTION_LABELS, type AdminSection } from "@/lib/adminSections";
+import HelpTip from "@/components/admin/HelpTip";
 
 export default function GrantAccessForm({ members }: { members: { id: string; full_name: string }[] }) {
   const router = useRouter();
@@ -64,7 +65,15 @@ export default function GrantAccessForm({ members }: { members: { id: string; fu
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-2 block text-sm text-muted">Link to a member (optional)</span>
+          <span className="mb-2 flex items-center text-sm text-muted">
+            Link to a member (optional)
+            <HelpTip>
+              Connects this login to a real sisterhood roster profile — use this for someone
+              who&rsquo;s both a member and an admin (like a council member helping run the
+              site). Leave it unlinked for someone with backend access who isn&rsquo;t part of
+              the public roster, like the site&rsquo;s developer.
+            </HelpTip>
+          </span>
           <select
             value={memberId}
             onChange={(e) => handleMemberSelect(e.target.value)}
@@ -90,7 +99,23 @@ export default function GrantAccessForm({ members }: { members: { id: string; fu
         </label>
 
         <label className="block">
-          <span className="mb-2 block text-sm text-muted">Role</span>
+          <span className="mb-2 flex items-center text-sm text-muted">
+            Role
+            <HelpTip>
+              <p className="text-parchment">
+                <strong>Owner</strong> — full access, plus creating and managing other admin
+                accounts and permissions.
+              </p>
+              <p className="mt-2 text-parchment">
+                <strong>Admin</strong> — full access to Applications, Events, Members, Memories,
+                and Tasks. Cannot manage other users.
+              </p>
+              <p className="mt-2 text-parchment">
+                <strong>Editor</strong> — limited to Events, Memories, and Tasks by default. Use
+                the custom section option below to change that.
+              </p>
+            </HelpTip>
+          </span>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as typeof role)}
@@ -135,6 +160,11 @@ export default function GrantAccessForm({ members }: { members: { id: string; fu
             className="h-4 w-4 rounded border-hairline"
           />
           Give this person a custom set of sections instead of the role default
+          <HelpTip>
+            Each role comes with a default set of sections it can see (explained above). Turn
+            this on to pick an exact custom set instead — useful if someone needs, say, Events
+            access but nothing else, which doesn&rsquo;t match any role&rsquo;s default.
+          </HelpTip>
         </label>
 
         {useOverride ? (
