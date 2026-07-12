@@ -7,15 +7,15 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsersPage() {
   const supabase = supabaseServer();
 
-  const { data: adminUsers } = await supabase
-    .from("admin_users")
-    .select("id, full_name, email, role, allowed_sections, member_id")
-    .order("full_name", { ascending: true });
-
-  const { data: members } = await supabase
-    .from("members")
-    .select("id, full_name")
-    .order("full_name", { ascending: true });
+  // Independent queries -- run them concurrently instead of one after the
+  // other, since neither depends on the other's result.
+  const [{ data: adminUsers }, { data: members }] = await Promise.all([
+    supabase
+      .from("admin_users")
+      .select("id, full_name, email, role, allowed_sections, member_id")
+      .order("full_name", { ascending: true }),
+    supabase.from("members").select("id, full_name").order("full_name", { ascending: true }),
+  ]);
 
   // Only offer members not already linked to an admin account, so the
   // owner can't accidentally link the same roster member to two different
