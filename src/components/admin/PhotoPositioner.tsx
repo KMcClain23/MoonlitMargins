@@ -22,13 +22,18 @@ export default function PhotoPositioner({
   const imgRef = useRef<HTMLImageElement>(null);
   const dragStart = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 
-  // Tracks the live offset during a drag without touching React state, so
-  // the image moves via direct DOM writes on every pointermove (smooth,
-  // no re-render) instead of re-rendering the whole form on every pixel of
-  // movement -- pointer events fire dozens of times a second, and a full
-  // React re-render per event is what was causing the jankiness. React
-  // state (via onChange) is only updated once, when the drag ends.
-  const liveOffset = useRef({ offsetX, offsetY });
+  // Tracks the live zoom/offset during any in-progress interaction (pan
+  // drag or zoom slider) without touching React state, so the image updates
+  // via direct DOM writes on every pointermove/input (smooth, no re-render)
+  // instead of re-rendering the whole form on every tick -- both fire
+  // dozens of times a second, and a full React re-render per event is what
+  // was causing the jankiness. React state (via onChange) is only updated
+  // once, when the interaction ends. The zoom slider used to call onChange
+  // directly on every tick (React normalizes range-input onChange to fire
+  // continuously while dragging, like the native `input` event, not just
+  // once on release) -- that was re-rendering the entire form on every
+  // notch of the slider and was the main source of the reported jank.
+  const live = useRef({ zoom, offsetX, offsetY });
 
   // The further zoomed in the photo is, the more of it hangs off the edges
   // of the frame -- and that overhang is exactly how much room there is to
@@ -53,19 +58,24 @@ export default function PhotoPositioner({
     return Math.min(max, Math.max(-max, n));
   }
 
-  function applyLiveTransform(nextOffsetX: number, nextOffsetY: number) {
-    liveOffset.current = { offsetX: nextOffsetX, offsetY: nextOffsetY };
+  function applyLiveTransform(nextZoom: number, nextOffsetX: number, nextOffsetY: number) {
+    live.current = { zoom: nextZoom, offsetX: nextOffsetX, offsetY: nextOffsetY };
     if (imgRef.current) {
-      const { width, height, transform } = avatarTransformStyle(zoom, nextOffsetX, nextOffsetY, PREVIEW_SIZE);
+      const { width, height, transform } = avatarTransformStyle(nextZoom, nextOffsetX, nextOffsetY, PREVIEW_SIZE);
       imgRef.current.style.width = width;
       imgRef.current.style.height = height;
       imgRef.current.style.transform = transform;
     }
   }
 
+  function commitLive() {
+    onChange(live.current);
+  }
+
   function handlePointerDown(e: React.PointerEvent) {
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragging(true);
+    live.current = { zoom, offsetX, offsetY };
     dragStart.current = { x: e.clientX, y: e.clientY, offsetX, offsetY };
   }
 
@@ -80,15 +90,28 @@ export default function PhotoPositioner({
     // pixels at any zoom level rather than drifting faster than the mouse.
     const nextOffsetX = clamp(dragStart.current.offsetX + (dx / (PREVIEW_SIZE * zoom)) * 100, zoom);
     const nextOffsetY = clamp(dragStart.current.offsetY + (dy / (PREVIEW_SIZE * zoom)) * 100, zoom);
-    applyLiveTransform(nextOffsetX, nextOffsetY);
+    applyLiveTransform(zoom, nextOffsetX, nextOffsetY);
   }
 
   function handlePointerUp() {
-    if (dragging) {
-      onChange({ zoom, offsetX: liveOffset.current.offsetX, offsetY: liveOffset.current.offsetY });
-    }
+    if (dragging) commitLive();
     setDragging(false);
     dragStart.current = null;
+  }
+
+  // Seeds `live` with the latest committed values at the start of a zoom
+  // interaction (mouse press or keyboard focus), the same way handlePointerDown
+  // does for panning -- otherwise a stale ref from a previous gesture could
+  // leak into this one.
+  function handleZoomInteractionStart() {
+    live.current = { zoom, offsetX, offsetY };
+  }
+
+  function handleZoomInput(e: React.FormEvent<HTMLInputElement>) {
+    const nextZoom = Number(e.currentTarget.value);
+    const nextOffsetX = clamp(live.current.offsetX, nextZoom);
+    const nextOffsetY = clamp(live.current.offsetY, nextZoom);
+    applyLiveTransform(nextZoom, nextOffsetX, nextOffsetY);
   }
 
   return (
@@ -118,20 +141,24 @@ export default function PhotoPositioner({
         <label className="block">
           <span className="mb-1 block text-xs text-muted">Zoom</span>
           <input
+            // Uncontrolled (defaultValue, not value) so dragging the thumb
+            // doesn't fight a React re-render mid-gesture. Keyed on the last
+            // *committed* zoom so the slider still snaps to the right spot
+            // after a commit (drag release, Reset button, or switching
+            // photos), without React fighting the live DOM value while a
+            // gesture is in progress.
+            key={zoom}
             type="range"
             min={1}
             max={3}
             step={0.05}
-            value={zoom}
-            onChange={(e) => {
-              const nextZoom = Number(e.target.value);
-              const max = maxOffsetForZoom(nextZoom);
-              onChange({
-                zoom: nextZoom,
-                offsetX: Math.min(max, Math.max(-max, offsetX)),
-                offsetY: Math.min(max, Math.max(-max, offsetY)),
-              });
-            }}
+            defaultValue={zoom}
+            onPointerDown={handleZoomInteractionStart}
+            onFocus={handleZoomInteractionStart}
+            onInput={handleZoomInput}
+            onPointerUp={commitLive}
+            onKeyUp={commitLive}
+            onBlur={commitLive}
             className="w-full accent-lilac"
           />
         </label>
