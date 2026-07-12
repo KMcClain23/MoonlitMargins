@@ -30,8 +30,27 @@ export default function PhotoPositioner({
   // state (via onChange) is only updated once, when the drag ends.
   const liveOffset = useRef({ offsetX, offsetY });
 
-  function clamp(n: number) {
-    return Math.min(50, Math.max(-50, n));
+  // The further zoomed in the photo is, the more of it hangs off the edges
+  // of the frame -- and that overhang is exactly how much room there is to
+  // pan without revealing empty background. A fixed range regardless of
+  // zoom was the cause of the "cut off" bug -- at low zoom it allowed
+  // panning further than any real image content existed, and at high zoom
+  // it was needlessly restrictive.
+  //
+  // The exact formula here is 50*(z-1)/z, not the more obvious 50*(z-1) --
+  // because avatarTransformStyle's translate is offsetX/100 * size * zoom
+  // (scaled by zoom, so a stored offset stays a zoom-invariant relative
+  // position -- see that file's comment), the safe offsetX range has to
+  // divide out that same zoom factor to land back on the real pixel
+  // overhang of size*(z-1)/2. Using 50*(z-1) here would let panning go
+  // `zoom` times further than the image actually extends.
+  function maxOffsetForZoom(z: number) {
+    return z <= 1 ? 0 : (50 * (z - 1)) / z;
+  }
+
+  function clamp(n: number, z: number) {
+    const max = maxOffsetForZoom(z);
+    return Math.min(max, Math.max(-max, n));
   }
 
   function applyLiveTransform(nextOffsetX: number, nextOffsetY: number) {
@@ -54,11 +73,13 @@ export default function PhotoPositioner({
     if (!dragging || !dragStart.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
-    // Divide by zoom too, so the image keeps tracking the cursor 1:1 in
-    // screen pixels no matter the current zoom level (matches
-    // avatarTransformStyle's zoom-scaled translate -- see its comment).
-    const nextOffsetX = clamp(dragStart.current.offsetX - (dx / (PREVIEW_SIZE * zoom)) * 100);
-    const nextOffsetY = clamp(dragStart.current.offsetY - (dy / (PREVIEW_SIZE * zoom)) * 100);
+    // The photo should visually follow the cursor -- drag right, photo
+    // moves right (this was previously inverted). Divided by zoom (not
+    // just PREVIEW_SIZE) to match avatarTransformStyle's zoom-scaled
+    // translate, so the photo still tracks the cursor 1:1 in screen
+    // pixels at any zoom level rather than drifting faster than the mouse.
+    const nextOffsetX = clamp(dragStart.current.offsetX + (dx / (PREVIEW_SIZE * zoom)) * 100, zoom);
+    const nextOffsetY = clamp(dragStart.current.offsetY + (dy / (PREVIEW_SIZE * zoom)) * 100, zoom);
     applyLiveTransform(nextOffsetX, nextOffsetY);
   }
 
@@ -93,7 +114,7 @@ export default function PhotoPositioner({
       </div>
 
       <div className="flex-1 space-y-3 pt-1">
-        <p className="text-xs text-muted">Drag the photo to reposition it, then use the slider to zoom.</p>
+        <p className="text-xs text-muted">Zoom in first, then drag the photo to reposition it.</p>
         <label className="block">
           <span className="mb-1 block text-xs text-muted">Zoom</span>
           <input
@@ -102,7 +123,15 @@ export default function PhotoPositioner({
             max={3}
             step={0.05}
             value={zoom}
-            onChange={(e) => onChange({ zoom: Number(e.target.value), offsetX, offsetY })}
+            onChange={(e) => {
+              const nextZoom = Number(e.target.value);
+              const max = maxOffsetForZoom(nextZoom);
+              onChange({
+                zoom: nextZoom,
+                offsetX: Math.min(max, Math.max(-max, offsetX)),
+                offsetY: Math.min(max, Math.max(-max, offsetY)),
+              });
+            }}
             className="w-full accent-lilac"
           />
         </label>
