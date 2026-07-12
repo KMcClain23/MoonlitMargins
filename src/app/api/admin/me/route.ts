@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     adminUserId: session.adminUserId,
+    memberId: session.memberId,
     fullName: session.fullName,
     role: session.role,
     sections: session.sections,

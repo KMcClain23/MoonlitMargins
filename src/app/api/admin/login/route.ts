@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const supabase = supabaseServer();
   const { data: adminUser } = await supabase
     .from("admin_users")
-    .select("id, full_name, email, password_hash, role, allowed_sections")
+    .select("id, full_name, email, password_hash, role, allowed_sections, member_id")
     .eq("email", String(email).toLowerCase().trim())
     .single();
 
@@ -31,7 +31,13 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true });
   response.cookies.set(
     SESSION_COOKIE,
-    createSessionToken({ adminUserId: adminUser.id, fullName: adminUser.full_name, role, sections }),
+    createSessionToken({
+      adminUserId: adminUser.id,
+      memberId: adminUser.member_id,
+      fullName: adminUser.full_name,
+      role,
+      sections,
+    }),
     {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

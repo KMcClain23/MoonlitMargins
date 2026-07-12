@@ -1,15 +1,22 @@
+import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
+import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import TaskForm from "@/components/admin/TaskForm";
 import TaskRow from "@/components/admin/TaskRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTasksPage() {
+  const cookieStore = await cookies();
+  const session = parseSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
+
   const supabase = supabaseServer();
 
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, title, description, assigned_to, assigned_by, due_date, status, created_at")
+    .select(
+      "id, title, description, assigned_to, assigned_by, due_date, status, acceptance_status, proposed_due_date, response_message, created_at"
+    )
     .order("due_date", { ascending: true, nullsFirst: false });
 
   const { data: members } = await supabase
@@ -19,10 +26,6 @@ export default async function AdminTasksPage() {
 
   const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name");
 
-  // Resolved client-side rather than via Postgres foreign-key embeds --
-  // assigned_to points at members, assigned_by points at admin_users (two
-  // different tables), so this is simpler and more robust than trying to
-  // disambiguate embedded joins across both.
   const memberNames = new Map((members ?? []).map((m) => [m.id, m.full_name]));
   const adminUserNames = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
 
@@ -45,6 +48,11 @@ export default async function AdminTasksPage() {
               assigneeName={task.assigned_to ? memberNames.get(task.assigned_to) ?? "Unknown" : null}
               assignerName={adminUserNames.get(task.assigned_by) ?? "Unknown"}
               members={members ?? []}
+              currentUser={
+                session
+                  ? { adminUserId: session.adminUserId, memberId: session.memberId, role: session.role }
+                  : null
+              }
             />
           ))
         )}

@@ -11,8 +11,13 @@ type Task = {
   assigned_by: string;
   due_date: string | null;
   status: "todo" | "in_progress" | "done";
+  acceptance_status: "pending" | "accepted" | "proposed_change";
+  proposed_due_date: string | null;
+  response_message: string | null;
   created_at: string;
 };
+
+type CurrentUser = { adminUserId: string; memberId: string | null; role: "owner" | "admin" | "editor" };
 
 const STATUS_LABELS: Record<Task["status"], string> = {
   todo: "To do",
@@ -25,14 +30,19 @@ export default function TaskRow({
   assigneeName,
   assignerName,
   members,
+  currentUser,
 }: {
   task: Task;
   assigneeName: string | null;
   assignerName: string;
   members: { id: string; full_name: string }[];
+  currentUser: CurrentUser | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [proposing, setProposing] = useState(false);
+  const [proposedDate, setProposedDate] = useState(task.due_date ?? "");
+  const [proposeMessage, setProposeMessage] = useState("");
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [assignedTo, setAssignedTo] = useState(task.assigned_to ?? "");
@@ -42,6 +52,47 @@ export default function TaskRow({
   const [loading, setLoading] = useState(false);
 
   const isOverdue = task.due_date && task.status !== "done" && new Date(task.due_date) < new Date();
+
+  const canRespondAsAssignee =
+    Boolean(currentUser) &&
+    (currentUser!.memberId === task.assigned_to || currentUser!.role === "owner" || currentUser!.role === "admin");
+  const canRespondAsAssigner =
+    Boolean(currentUser) && (currentUser!.adminUserId === task.assigned_by || currentUser!.role === "owner");
+
+  async function respond(body: Record<string, unknown>) {
+    setLoading(true);
+    setError("");
+    const res = await fetch(`/api/admin/tasks/${task.id}/respond`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    setLoading(false);
+    if (!res.ok) {
+      const responseBody = await res.json().catch(() => null);
+      setError(typeof responseBody?.error === "string" ? responseBody.error : "That didn't go through.");
+      return false;
+    }
+    router.refresh();
+    return true;
+  }
+
+  async function handleAccept() {
+    await respond({ action: "accept" });
+  }
+
+  async function handleSendProposal() {
+    const ok = await respond({ action: "propose", proposedDueDate: proposedDate, message: proposeMessage });
+    if (ok) setProposing(false);
+  }
+
+  async function handleApproveProposal() {
+    await respond({ action: "approve_proposal" });
+  }
+
+  async function handleRejectProposal() {
+    await respond({ action: "reject_proposal" });
+  }
 
   async function persist(next: Partial<{ status: Task["status"] }>) {
     const res = await fetch(`/api/admin/tasks/${task.id}`, {
@@ -158,6 +209,16 @@ export default function TaskRow({
                 Overdue
               </span>
             ) : null}
+            {task.acceptance_status === "pending" ? (
+              <span className="ml-2 rounded-full border border-hairline px-2 py-0.5 text-[10px] text-muted">
+                Awaiting response
+              </span>
+            ) : null}
+            {task.acceptance_status === "proposed_change" ? (
+              <span className="ml-2 rounded-full border border-lilac/40 px-2 py-0.5 text-[10px] text-lilac-soft">
+                New date proposed
+              </span>
+            ) : null}
           </p>
           <p className="mt-1 text-xs text-muted">
             {assigneeName ? `Assigned to ${assigneeName}` : "Unassigned"} · Created by {assignerName}
@@ -166,27 +227,139 @@ export default function TaskRow({
               : ""}
           </p>
           {task.description ? <p className="mt-2 text-sm text-muted">{task.description}</p> : null}
+
+          {task.acceptance_status === "pending" && canRespondAsAssignee ? (
+            <div className="mt-3">
+              {proposing ? (
+                <div className="space-y-3 rounded-xl border border-hairline bg-ink p-4">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted">Proposed due date</span>
+                    <input
+                      type="date"
+                      value={proposedDate}
+                      onChange={(e) => setProposedDate(e.target.value)}
+                      className="w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-parchment focus:border-lilac"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted">Message to {assignerName} (optional)</span>
+                    <textarea
+                      value={proposeMessage}
+                      onChange={(e) => setProposeMessage(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-parchment focus:border-lilac"
+                    />
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSendProposal}
+                      disabled={loading || !proposedDate}
+                      className="rounded-full bg-lilac px-4 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft disabled:opacity-50"
+                    >
+                      {loading ? "Sending…" : "Send proposal"}
+                    </button>
+                    <button onClick={() => setProposing(false)} className="text-xs text-muted hover:text-parchment">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleAccept}
+                    disabled={loading}
+                    className="rounded-full bg-lilac px-4 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => setProposing(true)}
+                    className="text-xs text-lilac-soft hover:underline"
+                  >
+                    Propose new date
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {task.acceptance_status === "pending" && !canRespondAsAssignee ? (
+            <p className="mt-3 text-xs text-muted">
+              Waiting on {assigneeName ?? "the assignee"} to accept or propose a different date.
+            </p>
+          ) : null}
+
+          {task.acceptance_status === "proposed_change" ? (
+            <div className="mt-3 rounded-xl border border-lilac/30 bg-ink p-4">
+              <p className="text-sm text-parchment">
+                {assigneeName ?? "The assignee"} proposed{" "}
+                <strong>
+                  {task.proposed_due_date
+                    ? new Date(task.proposed_due_date).toLocaleDateString("en-US", { dateStyle: "medium" })
+                    : "a new date"}
+                </strong>
+                .
+              </p>
+              {task.response_message ? (
+                <p className="mt-1 text-sm text-muted">&ldquo;{task.response_message}&rdquo;</p>
+              ) : null}
+
+              {canRespondAsAssigner ? (
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    onClick={handleApproveProposal}
+                    disabled={loading}
+                    className="rounded-full bg-lilac px-4 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft disabled:opacity-50"
+                  >
+                    Approve new date
+                  </button>
+                  <button
+                    onClick={handleRejectProposal}
+                    disabled={loading}
+                    className="text-xs text-muted hover:text-parchment"
+                  >
+                    Keep original date
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-muted">Waiting on {assignerName} to respond.</p>
+              )}
+            </div>
+          ) : null}
+
+          {error ? <p className="mt-2 text-sm text-candle">{error}</p> : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          <select
-            value={status}
-            onChange={(e) => handleStatusChange(e.target.value as Task["status"])}
-            className="rounded-full border border-hairline bg-ink px-3 py-1 text-xs text-parchment focus:border-lilac"
-          >
-            {(Object.keys(STATUS_LABELS) as Task["status"][]).map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
-          <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
-            Edit
-          </button>
-          <button onClick={handleDelete} className="text-xs text-candle hover:underline">
-            Delete
-          </button>
-        </div>
+        {task.acceptance_status === "accepted" ? (
+          <div className="flex shrink-0 items-center gap-3">
+            <select
+              value={status}
+              onChange={(e) => handleStatusChange(e.target.value as Task["status"])}
+              className="rounded-full border border-hairline bg-ink px-3 py-1 text-xs text-parchment focus:border-lilac"
+            >
+              {(Object.keys(STATUS_LABELS) as Task["status"][]).map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_LABELS[s]}
+                </option>
+              ))}
+            </select>
+            <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
+              Edit
+            </button>
+            <button onClick={handleDelete} className="text-xs text-candle hover:underline">
+              Delete
+            </button>
+          </div>
+        ) : (
+          <div className="flex shrink-0 items-center gap-3">
+            <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
+              Edit
+            </button>
+            <button onClick={handleDelete} className="text-xs text-candle hover:underline">
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
