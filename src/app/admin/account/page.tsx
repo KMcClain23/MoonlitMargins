@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
-  const router = useRouter();
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [defaultSection, setDefaultSection] = useState("applications");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -51,9 +49,19 @@ export default function AccountPage() {
       setRedirecting(true);
       // This was a forced change (temporary password) -- take them straight
       // into the section they actually came here to use.
+      //
+      // A hard navigation (not router.push) is required here: while the
+      // account was locked to /admin/account, AdminNav's <Link>s to every
+      // other section were still in the DOM and got auto-prefetched by
+      // Next.js -- each of those prefetches hit middleware while
+      // mustChangePassword was still true and got cached as a redirect
+      // back to /admin/account. router.push() reuses that stale client
+      // Router Cache and silently does nothing, leaving the user stuck
+      // here even though the server-side session already updated.
+      // Reloading the page from scratch discards that stale cache instead
+      // of trying to invalidate every entry it poisoned.
       setTimeout(() => {
-        router.push(`/admin/${defaultSection}`);
-        router.refresh();
+        window.location.href = `/admin/${defaultSection}`;
       }, 1200);
     }
   }
