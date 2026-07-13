@@ -3,7 +3,7 @@ import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/password";
 import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
-import { ALL_SECTIONS } from "@/lib/adminSections";
+import { ALL_SECTIONS, sectionsForRole } from "@/lib/adminSections";
 
 const updateSchema = z.object({
   role: z.enum(["owner", "admin", "editor"]),
@@ -29,6 +29,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { role, allowedSections, newPassword } = parsed.data;
   const supabase = supabaseServer();
+
+  // Guard against locking everyone out of Users management: if this account
+  // is the last remaining owner, block any change that would leave it
+  // either not an owner, or an owner with no access to the Users section
+  // (which, with the always-visible toggle UI, is now a single accidental
+  // click away instead of requiring a deliberate multi-step edit).
+  const { data: currentUser } = await supabase.from("admin_users").select("role").eq("id", id).single();
+  if (currentUser?.role === "owner") {
+    const { data: owners } = await supabase.from("admin_users").select("id").eq("role", "owner");
+    const isLastOwner = (owners ?? []).length <= 1;
+    if (isLastOwner) {
+      const willRetainUsersAccess =
+        role === "owner" && sectionsForRole(role, allowedSections).includes("users");
+      if (!willRetainUsersAccess) {
+        return NextResponse.json(
+          { error: "Can't remove the last remaining owner's access to Users management" },
+          { status: 400 }
+        );
+      }
+    }
+  }
 
   const update: Record<string, unknown> = {
     role,
