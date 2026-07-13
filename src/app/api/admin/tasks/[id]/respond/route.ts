@@ -72,10 +72,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   // approve_proposal / reject_proposal -- only whoever assigned the task,
-  // or an owner, can respond to a counter-proposal.
+  // or an owner, can respond to a counter-proposal. The owner override is
+  // for unblocking a stalled conversation between OTHER people -- it isn't
+  // a way to approve your own counter-proposal just because you also hold
+  // the owner role, so whoever actually IS the assignee (their own login,
+  // not an on-behalf-of stand-in) is excluded from this path entirely.
   const isAssigner = session.adminUserId === task.assigned_by;
-  if (!isAssigner && session.role !== "owner") {
-    return NextResponse.json({ error: "Only the assigner (or an owner) can respond to a proposal" }, { status: 403 });
+  const isActualAssignee = Boolean(session.memberId) && session.memberId === task.assigned_to;
+  if (isActualAssignee || (!isAssigner && session.role !== "owner")) {
+    return NextResponse.json(
+      { error: "Only the assigner (or another owner) can respond to a proposal" },
+      { status: 403 }
+    );
   }
 
   if (action === "approve_proposal") {

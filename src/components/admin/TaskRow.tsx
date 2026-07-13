@@ -84,8 +84,16 @@ export default function TaskRow({
     Boolean(currentUser) && (currentUser!.role === "owner" || currentUser!.role === "admin") && !assigneeHasLogin;
   const canRespondAsAssignee = isActualAssignee || canActOnBehalf;
   const canReassign = Boolean(currentUser) && (currentUser!.role === "owner" || currentUser!.role === "admin");
+  // The owner-role override exists so leadership can unblock a stalled
+  // conversation between other people -- it was never meant to let someone
+  // approve their own counter-proposal just because they also hold the
+  // owner role. Whoever actually IS the assignee (their own login, not an
+  // on-behalf-of stand-in) is excluded from this path entirely, regardless
+  // of role.
   const canRespondAsAssigner =
-    Boolean(currentUser) && (currentUser!.adminUserId === task.assigned_by || currentUser!.role === "owner");
+    Boolean(currentUser) &&
+    !isActualAssignee &&
+    (currentUser!.adminUserId === task.assigned_by || currentUser!.role === "owner");
 
   async function respond(body: Record<string, unknown>) {
     setLoading(true);
