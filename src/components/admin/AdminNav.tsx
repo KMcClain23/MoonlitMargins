@@ -126,6 +126,18 @@ export default function AdminNav() {
               </Link>
             );
           })}
+          {/* Messages is a universal utility, not gated by section access --
+              every logged-in admin user can message anyone. */}
+          <Link
+            href="/admin/messages"
+            className={`border-b-2 py-3 text-sm transition-colors ${
+              pathname?.startsWith("/admin/messages")
+                ? "border-lilac text-parchment"
+                : "border-transparent text-muted hover:text-parchment"
+            }`}
+          >
+            Messages
+          </Link>
         </nav>
       </div>
 
@@ -146,6 +158,17 @@ export default function AdminNav() {
                 {SECTION_LABELS[tab.section]}
               </Link>
             ))}
+            <Link
+              href="/admin/messages"
+              onClick={() => setMenuOpen(false)}
+              className={`rounded-lg px-2 py-2.5 text-sm transition-colors ${
+                pathname?.startsWith("/admin/messages")
+                  ? "bg-surface text-parchment"
+                  : "text-muted hover:bg-surface hover:text-parchment"
+              }`}
+            >
+              Messages
+            </Link>
             {session ? (
               <Link
                 href="/admin/account"

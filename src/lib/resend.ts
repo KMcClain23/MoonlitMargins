@@ -66,3 +66,19 @@ export async function sendRsvpNotification(params: {
     text: `Hi ${firstName},\n\nYou're confirmed for "${eventTitle}" on ${when}. We'll see you there!\n\nWith love,\nThe Moonlit Margins Sisterhood`,
   });
 }
+
+export async function sendMessageNotification(params: {
+  recipientEmail: string;
+  senderName: string;
+  conversationLabel: string;
+  body: string;
+}) {
+  const { recipientEmail, senderName, conversationLabel, body } = params;
+
+  await resend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to: recipientEmail,
+    subject: `New message from ${senderName}`,
+    text: `${senderName} sent a message in ${conversationLabel}:\n\n"${body}"\n\nReply in the admin panel under Messages.`,
+  });
+}

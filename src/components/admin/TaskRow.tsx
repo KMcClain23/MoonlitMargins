@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import TaskComments from "@/components/admin/TaskComments";
 
 type Task = {
   id: string;
@@ -58,6 +59,7 @@ export default function TaskRow({
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const [proposing, setProposing] = useState(false);
   const [proposedDate, setProposedDate] = useState(task.due_date ?? "");
   const [proposeMessage, setProposeMessage] = useState("");
@@ -359,6 +361,20 @@ export default function TaskRow({
           ) : null}
 
           {error ? <p className="mt-2 text-sm text-candle">{error}</p> : null}
+
+          <div className="mt-3">
+            <button
+              onClick={() => setShowComments((v) => !v)}
+              className="text-xs text-lilac-soft hover:underline"
+            >
+              {showComments ? "Hide comments" : "Comments"}
+            </button>
+            {showComments ? (
+              <div className="mt-2">
+                <TaskComments taskId={task.id} currentUserId={currentUser?.adminUserId ?? ""} />
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {task.acceptance_status === "accepted" ? (
