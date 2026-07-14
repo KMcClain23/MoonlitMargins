@@ -62,7 +62,7 @@ export default function AdminNav() {
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/admin/login");
+    router.push("/admin/login?reason=manual");
     router.refresh();
   }
 

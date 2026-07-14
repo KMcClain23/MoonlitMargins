@@ -10,7 +10,7 @@ const KIND_LABELS: Record<string, string> = {
   collab: "Collab",
 };
 
-async function getApplications(kind?: string) {
+async function getApplications(kind?: string, view?: string) {
   const supabase = supabaseServer();
   let query = supabase
     .from("applications")
@@ -21,6 +21,15 @@ async function getApplications(kind?: string) {
     query = query.eq("kind", kind);
   }
 
+  // Once an application is accepted or declined, it's resolved -- keep it
+  // out of the default view so the working list only shows what still
+  // needs attention. "Archived" surfaces the resolved ones on request.
+  if (view === "archived") {
+    query = query.in("status", ["accepted", "declined"]);
+  } else {
+    query = query.in("status", ["pending", "in_review"]);
+  }
+
   const { data } = await query;
   return data ?? [];
 }
@@ -28,35 +37,54 @@ async function getApplications(kind?: string) {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kind?: string }>;
+  searchParams: Promise<{ kind?: string; view?: string }>;
 }) {
-  const { kind = "all" } = await searchParams;
-  const applications = await getApplications(kind);
+  const { kind = "all", view = "active" } = await searchParams;
+  const applications = await getApplications(kind, view);
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-voice text-3xl text-parchment">Applications</h1>
-        <div className="flex gap-2">
-          {["all", "member", "interview", "collab"].map((option) => (
-            <Link
-              key={option}
-              href={`/admin/applications?kind=${option}`}
-              className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${
-                kind === option
-                  ? "border-lilac bg-lilac text-ink"
-                  : "border-muted/40 text-muted hover:border-parchment hover:text-parchment"
-              }`}
-            >
-              {option === "all" ? "All" : KIND_LABELS[option]}
-            </Link>
-          ))}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex gap-2">
+            {["active", "archived"].map((option) => (
+              <Link
+                key={option}
+                href={`/admin/applications?kind=${kind}&view=${option}`}
+                className={`rounded-full border px-4 py-1.5 text-xs capitalize transition-colors ${
+                  view === option
+                    ? "border-lilac bg-lilac text-ink"
+                    : "border-muted/40 text-muted hover:border-parchment hover:text-parchment"
+                }`}
+              >
+                {option}
+              </Link>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            {["all", "member", "interview", "collab"].map((option) => (
+              <Link
+                key={option}
+                href={`/admin/applications?kind=${option}&view=${view}`}
+                className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${
+                  kind === option
+                    ? "border-lilac bg-lilac text-ink"
+                    : "border-muted/40 text-muted hover:border-parchment hover:text-parchment"
+                }`}
+              >
+                {option === "all" ? "All" : KIND_LABELS[option]}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="mt-8 space-y-4">
         {applications.length === 0 ? (
-          <p className="text-sm text-muted">No applications yet.</p>
+          <p className="text-sm text-muted">
+            {view === "archived" ? "Nothing archived yet." : "No applications need attention right now."}
+          </p>
         ) : (
           applications.map((application) => (
             <ApplicationRow key={application.id} application={application} />
