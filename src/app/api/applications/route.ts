@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { sendApplicationNotification } from "@/lib/resend";
+import { appendApplicationRow } from "@/lib/googleSheets";
 
 const applicationSchema = z.object({
   kind: z.enum(["member", "interview", "collab"]),
@@ -49,6 +50,21 @@ export async function POST(request: NextRequest) {
   } catch {
     // The application is already saved — a failed email shouldn't
     // block the applicant. Leadership can still see it in Supabase.
+  }
+
+  try {
+    await appendApplicationRow({
+      kind,
+      fullName,
+      email,
+      instagramHandle: instagramHandle || null,
+      tiktokHandle: tiktokHandle || null,
+      answers,
+      submittedAt: new Date().toISOString(),
+    });
+  } catch {
+    // Same idea as the email notification above -- Google Sheets sync is a
+    // nice-to-have, never a blocker for a real applicant.
   }
 
   return NextResponse.json({ success: true });
