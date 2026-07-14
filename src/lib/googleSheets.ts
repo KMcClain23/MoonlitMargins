@@ -15,17 +15,25 @@ function base64UrlEncode(input: string) {
  * needs.
  */
 async function getAccessToken(): Promise<string | null> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const rawEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const rawKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  if (!email || !rawKey) {
+  if (!rawEmail || !rawKey) {
     console.warn("[googleSheets] Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY");
     return null;
   }
+  const email = rawEmail.replace(/^"|"$/g, "");
 
   // Private keys stored in env vars typically have their real newlines
   // escaped as literal "\n" sequences -- unescape them back to real
-  // newlines before use.
-  const privateKey = rawKey.replace(/\\n/g, "\n");
+  // newlines before use. Also strip a surrounding pair of double quotes:
+  // harmless if absent, but necessary when the value was pasted in
+  // verbatim (quotes and all) somewhere that -- unlike a local .env file,
+  // which dotenv-style parsers unwrap automatically -- stores env var
+  // values completely literally, like Vercel's dashboard/CLI. Without
+  // this, the stray quote characters corrupt the PEM structure and
+  // Node's crypto.sign() rejects it outright.
+  const unquoted = rawKey.replace(/^"|"$/g, "");
+  const privateKey = unquoted.replace(/\\n/g, "\n");
   const now = Math.floor(Date.now() / 1000);
 
   const header = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -94,11 +102,12 @@ export async function appendApplicationRow(row: {
   answers: Record<string, string>;
   submittedAt: string;
 }) {
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  if (!spreadsheetId) {
+  const rawSpreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  if (!rawSpreadsheetId) {
     console.warn("[googleSheets] Missing GOOGLE_SHEETS_SPREADSHEET_ID");
     return;
   }
+  const spreadsheetId = rawSpreadsheetId.replace(/^"|"$/g, "");
 
   const accessToken = await getAccessToken();
   if (!accessToken) return; // getAccessToken already logged why
