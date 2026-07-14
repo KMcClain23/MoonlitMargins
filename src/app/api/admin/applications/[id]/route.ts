@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { updateApplicationStatusInSheet } from "@/lib/googleSheets";
 
 const VALID_STATUSES = ["pending", "in_review", "accepted", "declined"];
 
@@ -15,13 +16,21 @@ export async function PATCH(
   }
 
   const supabase = supabaseServer();
-  const { error } = await supabase
+  const { error, data: updated } = await supabase
     .from("applications")
     .update({ status })
-    .eq("id", id);
+    .eq("id", id)
+    .select("kind")
+    .single();
 
-  if (error) {
+  if (error || !updated) {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
+
+  try {
+    await updateApplicationStatusInSheet(id, status, updated.kind);
+  } catch {
+    // Same "never block on this" rule as everywhere else this syncs.
   }
 
   return NextResponse.json({ success: true });

@@ -29,16 +29,20 @@ export async function POST(request: NextRequest) {
 
   const supabase = supabaseServer();
 
-  const { error } = await supabase.from("applications").insert({
-    kind,
-    full_name: fullName,
-    email,
-    instagram_handle: instagramHandle || null,
-    tiktok_handle: tiktokHandle || null,
-    answers,
-  });
+  const { error, data: inserted } = await supabase
+    .from("applications")
+    .insert({
+      kind,
+      full_name: fullName,
+      email,
+      instagram_handle: instagramHandle || null,
+      tiktok_handle: tiktokHandle || null,
+      answers,
+    })
+    .select("id, status")
+    .single();
 
-  if (error) {
+  if (error || !inserted) {
     return NextResponse.json(
       { error: "Something went wrong saving your application. Try again." },
       { status: 500 }
@@ -54,12 +58,14 @@ export async function POST(request: NextRequest) {
 
   try {
     await appendApplicationRow({
+      id: inserted.id,
       kind,
       fullName,
       email,
       instagramHandle: instagramHandle || null,
       tiktokHandle: tiktokHandle || null,
       answers,
+      status: inserted.status,
       submittedAt: new Date().toISOString(),
     });
   } catch {
