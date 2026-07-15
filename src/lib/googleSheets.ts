@@ -206,6 +206,35 @@ export async function appendApplicationRow(row: {
 }
 
 /**
+ * Finds which spreadsheet row (1-indexed, matching the sheet's own row
+ * numbers) holds the given application, by scanning the tab's ID column.
+ * Returns null if the row was never successfully appended in the first
+ * place (e.g. it predates this feature, or the original sync failed) --
+ * callers treat that as "nothing to do" rather than an error.
+ */
+async function findRowForApplication(
+  accessToken: string,
+  spreadsheetId: string,
+  tab: string,
+  idColumn: string,
+  applicationId: string
+): Promise<number | null> {
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${tab}!${idColumn}2:${idColumn}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) {
+    console.error("[googleSheets] Reading ID column failed:", res.status, await res.text());
+    return null;
+  }
+  const data = await res.json();
+  const ids: string[] = (data.values ?? []).map((r: string[]) => r[0]);
+  const rowOffset = ids.findIndex((id) => id === applicationId);
+  // Data starts at row 2 (row 1 is headers), and rowOffset is 0-indexed.
+  return rowOffset === -1 ? null : rowOffset + 2;
+}
+
+/**
  * Updates the Status cell for an existing row on the tab matching the
  * given kind, found by matching the application's ID against the tab's
  * last column. Best-effort -- if the row was never successfully appended
@@ -234,29 +263,13 @@ export async function updateApplicationStatusInSheet(applicationId: string, stat
   const statusColumn = columnLetter(FIXED_LEADING_COLUMNS + config.questionFields.length + 1);
 
   try {
-    const idColumnRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${config.tab}!${idColumn}2:${idColumn}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-
-    if (!idColumnRes.ok) {
-      console.error("[googleSheets] Reading ID column failed:", idColumnRes.status, await idColumnRes.text());
-      return;
-    }
-
-    const idColumnData = await idColumnRes.json();
-    const ids: string[] = (idColumnData.values ?? []).map((r: string[]) => r[0]);
-    const rowOffset = ids.findIndex((id) => id === applicationId);
-
-    if (rowOffset === -1) {
+    const sheetRow = await findRowForApplication(accessToken, spreadsheetId, config.tab, idColumn, applicationId);
+    if (sheetRow === null) {
       console.warn(
         `[googleSheets] No row found for application ${applicationId} on tab "${config.tab}" -- was it ever synced?`
       );
       return;
     }
-
-    // Data starts at row 2 (row 1 is headers), and rowOffset is 0-indexed.
-    const sheetRow = rowOffset + 2;
 
     const updateRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${config.tab}!${statusColumn}${sheetRow}?valueInputOption=USER_ENTERED`,
@@ -275,5 +288,96 @@ export async function updateApplicationStatusInSheet(applicationId: string, stat
     }
   } catch (err) {
     console.error("[googleSheets] Status update threw:", err);
+  }
+}
+
+const sheetIdCache = new Map<string, number>();
+
+async function getSheetId(accessToken: string, spreadsheetId: string, tab: string): Promise<number | null> {
+  if (sheetIdCache.has(tab)) return sheetIdCache.get(tab)!;
+
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) {
+    console.error("[googleSheets] Reading sheet metadata failed:", res.status, await res.text());
+    return null;
+  }
+  const data = await res.json();
+  const match = (data.sheets ?? []).find((s: { properties: { title: string } }) => s.properties.title === tab);
+  if (!match) {
+    console.warn(`[googleSheets] No tab named "${tab}" found in the spreadsheet`);
+    return null;
+  }
+  const sheetId = match.properties.sheetId as number;
+  sheetIdCache.set(tab, sheetId);
+  return sheetId;
+}
+
+/**
+ * Removes the row for the given application from its tab entirely (not
+ * just clearing the cells), so rows below it shift up. Best-effort, same
+ * "never block" rule as everywhere else this syncs -- if the row was never
+ * synced in the first place, this just logs and does nothing.
+ */
+export async function deleteApplicationRowFromSheet(applicationId: string, kind: string) {
+  const rawSpreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  if (!rawSpreadsheetId) {
+    console.warn("[googleSheets] Missing GOOGLE_SHEETS_SPREADSHEET_ID");
+    return;
+  }
+  const spreadsheetId = rawSpreadsheetId.replace(/^"|"$/g, "");
+
+  const config = TAB_CONFIG[kind];
+  if (!config) {
+    console.warn(`[googleSheets] Unknown application kind "${kind}" -- no tab configured`);
+    return;
+  }
+
+  const accessToken = await getAccessToken();
+  if (!accessToken) return;
+
+  const idColumn = columnLetter(FIXED_LEADING_COLUMNS + config.questionFields.length + TRAILING_COLUMNS);
+
+  try {
+    const sheetRow = await findRowForApplication(accessToken, spreadsheetId, config.tab, idColumn, applicationId);
+    if (sheetRow === null) {
+      console.warn(
+        `[googleSheets] No row found for application ${applicationId} on tab "${config.tab}" -- nothing to delete`
+      );
+      return;
+    }
+
+    const sheetId = await getSheetId(accessToken, spreadsheetId, config.tab);
+    if (sheetId === null) return;
+
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: sheetRow - 1,
+                endIndex: sheetRow,
+              },
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      console.error("[googleSheets] Row delete failed:", res.status, await res.text());
+    }
+  } catch (err) {
+    console.error("[googleSheets] Row delete threw:", err);
   }
 }

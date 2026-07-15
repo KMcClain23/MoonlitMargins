@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { updateApplicationStatusInSheet } from "@/lib/googleSheets";
+import { updateApplicationStatusInSheet, deleteApplicationRowFromSheet } from "@/lib/googleSheets";
 
 const VALID_STATUSES = ["pending", "in_review", "accepted", "declined"];
 
@@ -29,6 +29,33 @@ export async function PATCH(
 
   try {
     await updateApplicationStatusInSheet(id, status, updated.kind);
+  } catch {
+    // Same "never block on this" rule as everywhere else this syncs.
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = supabaseServer();
+
+  const { error, data: deleted } = await supabase
+    .from("applications")
+    .delete()
+    .eq("id", id)
+    .select("kind")
+    .single();
+
+  if (error || !deleted) {
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+  }
+
+  try {
+    await deleteApplicationRowFromSheet(id, deleted.kind);
   } catch {
     // Same "never block on this" rule as everywhere else this syncs.
   }

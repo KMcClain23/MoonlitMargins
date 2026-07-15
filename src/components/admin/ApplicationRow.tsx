@@ -42,6 +42,18 @@ export default function ApplicationRow({ application }: { application: Applicati
     }
   }
 
+  async function handleDelete() {
+    if (!confirm(`Delete ${application.full_name}'s application? This can't be undone.`)) return;
+    setLoading(true);
+    const res = await fetch(`/api/admin/applications/${application.id}`, { method: "DELETE" });
+    setLoading(false);
+    if (res.ok) {
+      router.refresh();
+    } else {
+      alert("Couldn't delete that application.");
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-hairline bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -100,6 +112,13 @@ export default function ApplicationRow({ application }: { application: Applicati
           disabled={loading}
           onClick={() => updateStatus("declined")}
         />
+        <button
+          onClick={handleDelete}
+          disabled={loading}
+          className="rounded-full border border-candle/40 px-4 py-1.5 text-xs text-candle transition-colors hover:bg-candle/10 disabled:opacity-50"
+        >
+          Delete
+        </button>
       </div>
     </div>
   );
