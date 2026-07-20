@@ -99,3 +99,26 @@ export async function sendNewsletterSignupNotification(email: string) {
     text: `${email} just signed up for the Moonlit Margins Sisterhood newsletter.`,
   });
 }
+
+/**
+ * Sent to members in a private event's targeted tiers when the event is
+ * created. Members have no login of their own, so this email itself is
+ * how they actually find out about a private event.
+ */
+export async function sendPrivateEventInviteEmail(params: {
+  recipientEmail: string;
+  eventTitle: string;
+  startsAt: string;
+  location: string | null;
+  description: string | null;
+}) {
+  const { recipientEmail, eventTitle, startsAt, location, description } = params;
+  const when = new Date(startsAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+
+  await resend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to: recipientEmail,
+    subject: `You're invited: ${eventTitle}`,
+    text: `You've been invited to a private sisterhood event.\n\n${eventTitle}\n${when}${location ? `\n${location}` : ""}${description ? `\n\n${description}` : ""}\n\nThis one's just for us -- keep the details close.`,
+  });
+}

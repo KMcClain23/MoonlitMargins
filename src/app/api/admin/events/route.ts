@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
+import { sendPrivateEventInviteEmail } from "@/lib/resend";
 
 const eventSchema = z.object({
   title: z.string().min(2),
@@ -14,6 +15,7 @@ const eventSchema = z.object({
   registrationType: z.enum(["rsvp", "ticketing"]).optional(),
   status: z.enum(["scheduled", "canceled"]).optional(),
   isPrivate: z.boolean().optional(),
+  targetTiers: z.array(z.string()).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -22,24 +24,66 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, description, eventType, startsAt, location, linkUrl, coverImageUrl, registrationType, status, isPrivate } =
-    parsed.data;
-  const supabase = supabaseServer();
-  const { error } = await supabase.from("events").insert({
+  const {
     title,
-    description: description || null,
-    event_type: eventType,
-    starts_at: new Date(startsAt).toISOString(),
-    location: location || null,
-    link_url: linkUrl || null,
-    cover_image_url: coverImageUrl || null,
-    registration_type: registrationType ?? "rsvp",
-    status: status ?? "scheduled",
-    is_private: isPrivate ?? false,
-  });
+    description,
+    eventType,
+    startsAt,
+    location,
+    linkUrl,
+    coverImageUrl,
+    registrationType,
+    status,
+    isPrivate,
+    targetTiers,
+  } = parsed.data;
+  const supabase = supabaseServer();
+  const { data: created, error } = await supabase
+    .from("events")
+    .insert({
+      title,
+      description: description || null,
+      event_type: eventType,
+      starts_at: new Date(startsAt).toISOString(),
+      location: location || null,
+      link_url: linkUrl || null,
+      cover_image_url: coverImageUrl || null,
+      registration_type: registrationType ?? "rsvp",
+      status: status ?? "scheduled",
+      is_private: isPrivate ?? false,
+      target_tiers: targetTiers && targetTiers.length > 0 ? targetTiers : null,
+    })
+    .select("id, title, starts_at, location, description")
+    .single();
 
-  if (error) {
+  if (error || !created) {
     return NextResponse.json({ error: "Could not create event" }, { status: 500 });
+  }
+
+  if (isPrivate && targetTiers && targetTiers.length > 0) {
+    try {
+      const { data: recipients } = await supabase
+        .from("members")
+        .select("email")
+        .in("tier", targetTiers)
+        .not("email", "is", null);
+
+      await Promise.allSettled(
+        (recipients ?? [])
+          .filter((r) => r.email)
+          .map((r) =>
+            sendPrivateEventInviteEmail({
+              recipientEmail: r.email as string,
+              eventTitle: created.title,
+              startsAt: created.starts_at,
+              location: created.location,
+              description: created.description,
+            })
+          )
+      );
+    } catch {
+      // Never let a notification failure affect the already-created event.
+    }
   }
 
   revalidatePath("/events");

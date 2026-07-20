@@ -11,6 +11,7 @@ type MemberValues = {
   full_name?: string;
   role?: string | null;
   bio?: string | null;
+  email?: string | null;
   photo_url?: string | null;
   photo_zoom?: number;
   photo_offset_x?: number;
@@ -60,6 +61,7 @@ export default function MemberForm({
       fullName: String(formData.get("fullName") ?? ""),
       role: String(formData.get("role") ?? ""),
       bio: String(formData.get("bio") ?? ""),
+      email: String(formData.get("email") ?? ""),
       photoUrl: String(formData.get("photoUrl") ?? ""),
       photoZoom,
       photoOffsetX,
@@ -129,6 +131,18 @@ export default function MemberForm({
           <input
             name="role"
             defaultValue={member?.role ?? ""}
+            className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-2 block text-sm text-muted">
+            Email (used to invite them to private events -- not a login)
+          </span>
+          <input
+            name="email"
+            type="email"
+            defaultValue={member?.email ?? ""}
             className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
           />
         </label>

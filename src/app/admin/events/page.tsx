@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
+import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import EventForm from "@/components/admin/EventForm";
 import EventRow from "@/components/admin/EventRow";
 
@@ -14,6 +16,8 @@ async function getEvents() {
 }
 
 export default async function AdminEventsPage() {
+  const cookieStore = await cookies();
+  const session = parseSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
   const events = await getEvents();
 
   return (
@@ -28,7 +32,9 @@ export default async function AdminEventsPage() {
         {events.length === 0 ? (
           <p className="text-sm text-muted">No events yet.</p>
         ) : (
-          events.map((event) => <EventRow key={event.id} event={event} />)
+          events.map((event) => (
+            <EventRow key={event.id} event={event} currentUserId={session?.adminUserId ?? ""} />
+          ))
         )}
       </div>
     </div>

@@ -145,9 +145,11 @@ export async function sendMessageAndNotify(
   const label =
     conversation?.type === "task"
       ? "a task thread"
-      : conversation?.type === "group"
-        ? conversation.title || "a group conversation"
-        : "a direct message";
+      : conversation?.type === "event"
+        ? "an event thread"
+        : conversation?.type === "group"
+          ? conversation.title || "a group conversation"
+          : "a direct message";
 
   await Promise.allSettled(
     (recipients ?? []).map((r) =>
@@ -159,4 +161,35 @@ export async function sendMessageAndNotify(
       })
     )
   );
+}
+
+/**
+ * Finds the existing discussion thread for an event, or creates one --
+ * with every current admin_users account added as a participant, since
+ * this is meant as a whole-team thread rather than scoped to just whoever
+ * created the event.
+ */
+export async function getOrCreateEventConversation(supabase: SupabaseClient, eventId: string): Promise<string> {
+  const { data: existing } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (existing) return existing.id as string;
+
+  const { data: created, error } = await supabase
+    .from("conversations")
+    .insert({ type: "event", event_id: eventId })
+    .select("id")
+    .single();
+  if (error || !created) throw new Error("Could not create event thread");
+
+  const { data: adminUsers } = await supabase.from("admin_users").select("id");
+  if (adminUsers && adminUsers.length > 0) {
+    await supabase.from("conversation_participants").insert(
+      adminUsers.map((u) => ({ conversation_id: created.id, admin_user_id: u.id }))
+    );
+  }
+
+  return created.id as string;
 }

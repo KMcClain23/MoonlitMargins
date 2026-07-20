@@ -1,9 +1,10 @@
 export type FormField = {
   name: string;
   label: string;
-  type: "text" | "textarea" | "select" | "checkbox-group" | "birthday";
+  type: "text" | "textarea" | "select" | "grouped-select" | "checkbox-group" | "birthday";
   required?: boolean;
   options?: string[];
+  groups?: { label: string; options: string[] }[];
   placeholder?: string;
 };
 
@@ -94,9 +95,34 @@ export function Field({ field }: { field: FormField }) {
     );
   }
 
+  if (field.type === "grouped-select") {
+    return (
+      <label className="block">
+        <span className="mb-2 block text-sm text-muted">{field.label}</span>
+        <select
+          name={field.name}
+          required={field.required}
+          defaultValue=""
+          className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac"
+        >
+          <option value="" disabled>
+            Choose one
+          </option>
+          {field.groups?.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
   if (field.type === "birthday") {
-    // Rendered as three separate inputs (month/day/year), but collected
-    // back into one formatted answer string -- see collectBirthdayAnswer.
     return (
       <fieldset>
         <legend className="mb-2 block text-sm text-muted">

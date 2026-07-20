@@ -3,6 +3,38 @@ import Chapter from "@/components/Chapter";
 import Countdown from "@/components/Countdown";
 import { APPLICATIONS_REOPEN_AT } from "@/lib/countdownTarget";
 
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+  "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+  "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+  "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia",
+];
+
+const TIMEZONE_GROUPS = [
+  {
+    label: "Most common",
+    options: ["Eastern Time (ET)", "Central Time (CT)", "Mountain Time (MT)", "Pacific Time (PT)"],
+  },
+  {
+    label: "Other US",
+    options: ["Alaska Time (AKT)", "Hawaii-Aleutian Time (HT)"],
+  },
+  {
+    label: "International",
+    options: [
+      "UTC",
+      "London (GMT/BST)",
+      "Central Europe (CET)",
+      "India (IST)",
+      "Japan (JST)",
+      "Australia Eastern (AET)",
+    ],
+  },
+];
+
 const FIELDS: FormField[] = [
   {
     name: "whyJoin",
@@ -33,8 +65,9 @@ const FIELDS: FormField[] = [
   {
     name: "timeZone",
     label: "Time zone (for live events)",
-    type: "text",
+    type: "grouped-select",
     required: true,
+    groups: TIMEZONE_GROUPS,
   },
   {
     name: "phone",
@@ -45,8 +78,9 @@ const FIELDS: FormField[] = [
   {
     name: "state",
     label: "What state do you currently reside in?",
-    type: "text",
+    type: "select",
     required: true,
+    options: US_STATES,
   },
   {
     name: "howHeard",

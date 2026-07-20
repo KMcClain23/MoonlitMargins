@@ -14,6 +14,7 @@ const eventSchema = z.object({
   registrationType: z.enum(["rsvp", "ticketing"]).optional(),
   status: z.enum(["scheduled", "canceled"]).optional(),
   isPrivate: z.boolean().optional(),
+  targetTiers: z.array(z.string()).optional(),
 });
 
 export async function DELETE(
@@ -42,7 +43,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, description, eventType, startsAt, location, linkUrl, coverImageUrl, registrationType, status, isPrivate } =
+  const { title, description, eventType, startsAt, location, linkUrl, coverImageUrl, registrationType, status, isPrivate, targetTiers } =
     parsed.data;
   const supabase = supabaseServer();
   const { data, error } = await supabase
@@ -58,6 +59,7 @@ export async function PATCH(
       registration_type: registrationType ?? "rsvp",
       status: status ?? "scheduled",
       is_private: isPrivate ?? false,
+      target_tiers: targetTiers && targetTiers.length > 0 ? targetTiers : null,
     })
     .eq("id", id)
     .select("slug")

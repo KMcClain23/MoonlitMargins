@@ -13,6 +13,13 @@ const EVENT_TYPES = [
   { value: "other", label: "Other" },
 ];
 
+const TIER_OPTIONS = [
+  { value: "founder", label: "Founder" },
+  { value: "council", label: "Council" },
+  { value: "junior_council", label: "Junior council" },
+  { value: "member", label: "Member" },
+];
+
 type EventValues = {
   id?: string;
   title?: string;
@@ -25,6 +32,7 @@ type EventValues = {
   registration_type?: "rsvp" | "ticketing";
   status?: "scheduled" | "canceled";
   is_private?: boolean;
+  target_tiers?: string[] | null;
 };
 
 // datetime-local inputs need "YYYY-MM-DDTHH:mm" in local time, not an ISO string with Z.
@@ -46,6 +54,8 @@ export default function EventForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isEditing = Boolean(existingEvent?.id);
+  const [isPrivate, setIsPrivate] = useState(existingEvent?.is_private ?? false);
+  const [selectedTiers, setSelectedTiers] = useState<string[]>(existingEvent?.target_tiers ?? []);
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -65,6 +75,7 @@ export default function EventForm({
       registrationType: String(formData.get("registrationType") ?? "rsvp"),
       status: formData.get("canceled") === "on" ? "canceled" : "scheduled",
       isPrivate: formData.get("isPrivate") === "on",
+      targetTiers: formData.get("isPrivate") === "on" ? selectedTiers : [],
     };
 
     const url = isEditing ? `/api/admin/events/${existingEvent!.id}` : "/api/admin/events";
@@ -177,13 +188,46 @@ export default function EventForm({
           <input
             name="isPrivate"
             type="checkbox"
-            defaultChecked={existingEvent?.is_private ?? false}
+            checked={isPrivate}
+            onChange={(e) => setIsPrivate(e.target.checked)}
             className="h-4 w-4 rounded border-hairline"
           />
           <span className="text-sm text-muted">
             Private event (hidden from the public /events listing; still reachable via direct link)
           </span>
         </label>
+
+        {isPrivate ? (
+          <div className="sm:col-span-2 rounded-lg border border-hairline p-4">
+            <p className="mb-2 text-sm text-muted">
+              Which tiers should be emailed the details? (Only members with an email on file will
+              actually receive it -- add missing emails on the Members page.)
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {TIER_OPTIONS.map((tier) => (
+                <label key={tier.value} className="flex items-center gap-2 text-sm text-parchment">
+                  <input
+                    type="checkbox"
+                    checked={selectedTiers.includes(tier.value)}
+                    onChange={(e) =>
+                      setSelectedTiers((current) =>
+                        e.target.checked ? [...current, tier.value] : current.filter((t) => t !== tier.value)
+                      )
+                    }
+                    className="h-4 w-4 rounded border-hairline"
+                  />
+                  {tier.label}
+                </label>
+              ))}
+            </div>
+            {isEditing ? (
+              <p className="mt-2 text-xs text-muted">
+                Changing tiers here does not re-send invite emails -- those only go out once, when
+                the event is first created.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {error ? <p className="text-sm text-candle">{error}</p> : null}

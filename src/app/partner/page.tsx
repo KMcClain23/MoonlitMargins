@@ -16,19 +16,6 @@ export default function PartnerPage() {
           our members. Choose whichever fits below.
         </p>
 
-        {/* DRAFT COPY -- Dean, please edit this to say exactly what you want
-            applicants to know before they apply. */}
-        <div className="mt-10 rounded-2xl border border-hairline bg-surface p-6">
-          <p className="font-voice text-lg text-parchment">What&rsquo;s required of me if I&rsquo;m accepted?</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Once we confirm a date, we ask that you&rsquo;re responsive to scheduling, share the
-            requested materials (book, links, cover art) ahead of time, and show up ready to talk
-            candidly about your work. For partnerships, we ask that the agreed format (physical
-            copy, eBook, or audiobook access) reaches our members with enough lead time to read
-            and prepare before the feature goes live.
-          </p>
-        </div>
-
         <div className="mt-12">
           <PartnerForm />
         </div>
