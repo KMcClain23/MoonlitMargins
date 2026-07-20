@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  if (!session.canAssignTasks) {
+    return NextResponse.json({ error: "You don't have permission to create tasks" }, { status: 403 });
+  }
 
   const parsed = taskSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -24,9 +27,6 @@ export async function POST(request: NextRequest) {
   const { title, description, assignedTo, dueDate } = parsed.data;
   const supabase = supabaseServer();
 
-  // assigned_by comes from the session, not the request body -- the person
-  // creating a task is whoever is actually logged in (an admin_users
-  // account), not whatever a client could claim.
   const { error } = await supabase.from("tasks").insert({
     title,
     description: description || null,

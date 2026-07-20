@@ -26,9 +26,33 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { title, description, assignedTo, dueDate, status } = parsed.data;
   const supabase = supabaseServer();
 
-  const { data: current } = await supabase.from("tasks").select("assigned_to").eq("id", id).single();
+  const { data: current } = await supabase
+    .from("tasks")
+    .select("title, description, assigned_to, due_date, status")
+    .eq("id", id)
+    .single();
+
+  if (!current) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
   const newAssignedTo = assignedTo || null;
-  const isReassignment = current && current.assigned_to !== newAssignedTo;
+  const isReassignment = current.assigned_to !== newAssignedTo;
+
+  // Someone without task-management permission can still update the status
+  // of a task assigned to them (marking their own progress) -- but nothing
+  // else. Anything beyond a status change on your own task requires
+  // canAssignTasks.
+  const isStatusOnlyChangeByAssignee =
+    session.memberId === current.assigned_to &&
+    title === current.title &&
+    (description || null) === current.description &&
+    newAssignedTo === current.assigned_to &&
+    (dueDate || null) === current.due_date;
+
+  if (!session.canAssignTasks && !isStatusOnlyChangeByAssignee) {
+    return NextResponse.json({ error: "You don't have permission to edit this task" }, { status: 403 });
+  }
 
   const update: Record<string, unknown> = {
     title,
@@ -62,6 +86,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const session = parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!session.canAssignTasks) {
+    return NextResponse.json({ error: "You don't have permission to delete tasks" }, { status: 403 });
   }
 
   const { id } = await params;

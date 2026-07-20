@@ -1,6 +1,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import GrantAccessForm from "@/components/admin/GrantAccessForm";
 import UserRow from "@/components/admin/UserRow";
+import BulkProvisionButton from "@/components/admin/BulkProvisionButton";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +15,12 @@ export default async function AdminUsersPage() {
       .from("admin_users")
       .select("id, full_name, email, role, allowed_sections, member_id")
       .order("full_name", { ascending: true }),
-    supabase.from("members").select("id, full_name").order("full_name", { ascending: true }),
+    supabase.from("members").select("id, full_name, email").order("full_name", { ascending: true }),
   ]);
 
-  // Only offer members not already linked to an admin account, so the
-  // owner can't accidentally link the same roster member to two different
-  // logins.
   const linkedMemberIds = new Set((adminUsers ?? []).map((u) => u.member_id).filter(Boolean));
   const linkableMembers = (members ?? []).filter((m) => !linkedMemberIds.has(m.id));
+  const eligibleForBulk = linkableMembers.filter((m) => m.email).length;
 
   return (
     <div>
@@ -31,6 +30,10 @@ export default async function AdminUsersPage() {
         or leave it unlinked for someone who isn't part of the public roster (like the site's
         developer).
       </p>
+
+      <div className="mt-6">
+        <BulkProvisionButton eligibleCount={eligibleForBulk} />
+      </div>
 
       <div className="mt-6">
         <GrantAccessForm members={linkableMembers} />

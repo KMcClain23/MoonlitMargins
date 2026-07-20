@@ -39,9 +39,16 @@ export default async function AdminTasksPage() {
     <div>
       <h1 className="font-voice text-3xl text-parchment">Tasks</h1>
 
-      <div className="mt-6">
-        <TaskForm members={members ?? []} />
-      </div>
+      {session?.canAssignTasks ? (
+        <div className="mt-6">
+          <TaskForm members={members ?? []} />
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-muted">
+          You can view and respond to tasks assigned to you, but can&rsquo;t create or reassign
+          tasks.
+        </p>
+      )}
 
       <div className="mt-8 space-y-3">
         {(tasks ?? []).length === 0 ? (
@@ -57,7 +64,12 @@ export default async function AdminTasksPage() {
               members={members ?? []}
               currentUser={
                 session
-                  ? { adminUserId: session.adminUserId, memberId: session.memberId, role: session.role }
+                  ? {
+                      adminUserId: session.adminUserId,
+                      memberId: session.memberId,
+                      role: session.role,
+                      canAssignTasks: session.canAssignTasks,
+                    }
                   : null
               }
             />

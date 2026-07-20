@@ -64,7 +64,7 @@ export default function ImageUpload({
 
   return (
     <div>
-      <span className="mb-2 block text-sm text-muted">{label}</span>
+      {label ? <span className="mb-2 block text-sm text-muted">{label}</span> : null}
 
       <div className="flex items-start gap-3">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-hairline bg-ink">

@@ -18,7 +18,12 @@ type Task = {
   created_at: string;
 };
 
-type CurrentUser = { adminUserId: string; memberId: string | null; role: "owner" | "admin" | "editor" };
+type CurrentUser = {
+  adminUserId: string;
+  memberId: string | null;
+  role: "owner" | "admin" | "editor";
+  canAssignTasks: boolean;
+};
 
 // due_date/proposed_due_date are plain "YYYY-MM-DD" dates (no time-of-day),
 // but `new Date("YYYY-MM-DD")` parses that as UTC midnight -- displaying it
@@ -83,7 +88,7 @@ export default function TaskRow({
   const canActOnBehalf =
     Boolean(currentUser) && (currentUser!.role === "owner" || currentUser!.role === "admin") && !assigneeHasLogin;
   const canRespondAsAssignee = isActualAssignee || canActOnBehalf;
-  const canReassign = Boolean(currentUser) && (currentUser!.role === "owner" || currentUser!.role === "admin");
+  const canManageTasks = Boolean(currentUser) && currentUser!.canAssignTasks;
   // The owner-role override exists so leadership can unblock a stalled
   // conversation between other people -- it was never meant to let someone
   // approve their own counter-proposal just because they also hold the
@@ -324,7 +329,7 @@ export default function TaskRow({
               <p className="text-xs text-muted">
                 Waiting on {assigneeName ?? "the assignee"} to accept or propose a different date.
               </p>
-              {canReassign ? (
+              {canManageTasks ? (
                 <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
                   Reassign
                 </button>
@@ -398,14 +403,18 @@ export default function TaskRow({
                 </option>
               ))}
             </select>
-            <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
-              Edit
-            </button>
-            <button onClick={handleDelete} className="text-xs text-candle hover:underline">
-              Delete
-            </button>
+            {canManageTasks ? (
+              <>
+                <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
+                  Edit
+                </button>
+                <button onClick={handleDelete} className="text-xs text-candle hover:underline">
+                  Delete
+                </button>
+              </>
+            ) : null}
           </div>
-        ) : (
+        ) : canManageTasks ? (
           <div className="flex shrink-0 items-center gap-3">
             <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
               Edit
@@ -414,7 +423,7 @@ export default function TaskRow({
               Delete
             </button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

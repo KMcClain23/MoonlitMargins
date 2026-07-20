@@ -11,6 +11,7 @@ export type AdminSession = {
   role: AdminRole;
   sections: AdminSection[];
   mustChangePassword: boolean;
+  canAssignTasks: boolean;
   expiry: number;
 };
 

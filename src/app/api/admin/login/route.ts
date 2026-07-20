@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const supabase = supabaseServer();
   const { data: adminUser } = await supabase
     .from("admin_users")
-    .select("id, full_name, email, password_hash, role, allowed_sections, member_id, must_change_password")
+    .select("id, full_name, email, password_hash, role, allowed_sections, member_id, must_change_password, can_assign_tasks")
     .eq("email", String(email).toLowerCase().trim())
     .single();
 
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       role,
       sections,
       mustChangePassword: adminUser.must_change_password,
+      canAssignTasks: adminUser.can_assign_tasks,
     }),
     {
       httpOnly: true,

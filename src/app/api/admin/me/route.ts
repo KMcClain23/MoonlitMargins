@@ -16,5 +16,6 @@ export async function GET(request: NextRequest) {
     role: session.role,
     sections: session.sections,
     mustChangePassword: session.mustChangePassword,
+    canAssignTasks: session.canAssignTasks,
   });
 }
