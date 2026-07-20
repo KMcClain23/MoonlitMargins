@@ -184,12 +184,23 @@ function EventCard({ event, isPast }: { event: EventRow; isPast: boolean }) {
 
           <div className="mt-4 flex flex-wrap items-center gap-4">
             {!canceled ? (
-              <Link
-                href={`/events/${event.slug}`}
-                className="rounded-full bg-lilac px-4 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft"
-              >
-                {isPast ? "Details" : isTicketed ? "Get tickets" : "RSVP"}
-              </Link>
+              !isPast && !isTicketed && event.link_url ? (
+                <a
+                  href={event.link_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full bg-lilac px-4 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft"
+                >
+                  RSVP via TikTok
+                </a>
+              ) : (
+                <Link
+                  href={`/events/${event.slug}`}
+                  className="rounded-full bg-lilac px-4 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft"
+                >
+                  {isPast ? "Details" : isTicketed ? "Get tickets" : "RSVP"}
+                </Link>
+              )
             ) : (
               <Link
                 href={`/events/${event.slug}`}
