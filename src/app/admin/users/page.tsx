@@ -2,10 +2,21 @@ import { supabaseServer } from "@/lib/supabase/server";
 import GrantAccessForm from "@/components/admin/GrantAccessForm";
 import UserRow from "@/components/admin/UserRow";
 import BulkProvisionButton from "@/components/admin/BulkProvisionButton";
+import UserRoleFilter from "@/components/admin/UserRoleFilter";
+import type { AdminRole } from "@/lib/adminSections";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage() {
+const VALID_ROLES: AdminRole[] = ["owner", "admin", "editor"];
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
+  const { role: roleParam } = await searchParams;
+  const role = VALID_ROLES.includes(roleParam as AdminRole) ? (roleParam as AdminRole) : "all";
+
   const supabase = supabaseServer();
 
   // Independent queries -- run them concurrently instead of one after the
@@ -21,6 +32,8 @@ export default async function AdminUsersPage() {
   const linkedMemberIds = new Set((adminUsers ?? []).map((u) => u.member_id).filter(Boolean));
   const linkableMembers = (members ?? []).filter((m) => !linkedMemberIds.has(m.id));
   const eligibleForBulk = linkableMembers.filter((m) => m.email).length;
+
+  const visibleUsers = (adminUsers ?? []).filter((u) => role === "all" || u.role === role);
 
   return (
     <div>
@@ -39,11 +52,20 @@ export default async function AdminUsersPage() {
         <GrantAccessForm members={linkableMembers} />
       </div>
 
-      <div className="mt-8 space-y-3">
-        {(adminUsers ?? []).length === 0 ? (
-          <p className="text-sm text-muted">No admin accounts yet.</p>
+      <div className="mt-8 flex items-center justify-between">
+        <p className="text-sm text-muted">
+          {visibleUsers.length} account{visibleUsers.length === 1 ? "" : "s"}
+        </p>
+        <UserRoleFilter value={role} />
+      </div>
+
+      <div className="mt-3 space-y-3">
+        {visibleUsers.length === 0 ? (
+          <p className="text-sm text-muted">
+            {(adminUsers ?? []).length === 0 ? "No admin accounts yet." : "No accounts with this role."}
+          </p>
         ) : (
-          (adminUsers ?? []).map((user) => <UserRow key={user.id} user={user} />)
+          visibleUsers.map((user) => <UserRow key={user.id} user={user} />)
         )}
       </div>
     </div>
