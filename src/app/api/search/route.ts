@@ -38,13 +38,13 @@ const PAGES: Array<{ title: string; keywords: string[]; href: string; snippet: s
   {
     title: "Interview with Us",
     keywords: ["interview", "narrator", "author feature"],
-    href: "/interview",
+    href: "/partner?type=interview",
     snippet: "For narrators and authors who want to be interviewed.",
   },
   {
-    title: "Collab with Us",
-    keywords: ["collab", "collaboration", "author", "book of the month"],
-    href: "/collab",
+    title: "Partner with Us",
+    keywords: ["collab", "partner", "collaboration", "author", "book of the month"],
+    href: "/partner?type=collab",
     snippet: "For authors who want their book featured with the club.",
   },
 ];

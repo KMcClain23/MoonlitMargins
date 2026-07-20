@@ -25,7 +25,7 @@ create table if not exists events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text,
-  event_type text not null check (event_type in ('reading_sprint', 'tiktok_live', 'author_event', 'annual_meetup', 'other')),
+  event_type text not null check (event_type in ('reading_sprint', 'tiktok_live', 'author_event', 'annual_meetup', 'game_night', 'other')),
   starts_at timestamptz not null,
   ends_at timestamptz,
   location text,

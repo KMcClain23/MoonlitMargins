@@ -9,6 +9,7 @@ const EVENT_TYPES = [
   { value: "tiktok_live", label: "TikTok live" },
   { value: "author_event", label: "Author event" },
   { value: "annual_meetup", label: "Annual meetup" },
+  { value: "game_night", label: "Game night" },
   { value: "other", label: "Other" },
 ];
 
@@ -23,6 +24,7 @@ type EventValues = {
   cover_image_url?: string | null;
   registration_type?: "rsvp" | "ticketing";
   status?: "scheduled" | "canceled";
+  is_private?: boolean;
 };
 
 // datetime-local inputs need "YYYY-MM-DDTHH:mm" in local time, not an ISO string with Z.
@@ -62,6 +64,7 @@ export default function EventForm({
       coverImageUrl: String(formData.get("coverImageUrl") ?? ""),
       registrationType: String(formData.get("registrationType") ?? "rsvp"),
       status: formData.get("canceled") === "on" ? "canceled" : "scheduled",
+      isPrivate: formData.get("isPrivate") === "on",
     };
 
     const url = isEditing ? `/api/admin/events/${existingEvent!.id}` : "/api/admin/events";
@@ -168,6 +171,18 @@ export default function EventForm({
             className="h-4 w-4 rounded border-hairline"
           />
           <span className="text-sm text-muted">This event has been canceled</span>
+        </label>
+
+        <label className="flex items-center gap-2 sm:col-span-2">
+          <input
+            name="isPrivate"
+            type="checkbox"
+            defaultChecked={existingEvent?.is_private ?? false}
+            className="h-4 w-4 rounded border-hairline"
+          />
+          <span className="text-sm text-muted">
+            Private event (hidden from the public /events listing; still reachable via direct link)
+          </span>
         </label>
       </div>
 

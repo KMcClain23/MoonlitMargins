@@ -49,6 +49,14 @@ export default function EventRsvpSection({
     );
   }
 
+  if (registrationType === "rsvp" && linkUrl) {
+    return (
+      <a href={linkUrl} target="_blank" rel="noreferrer" className={linkButtonClass}>
+        RSVP via TikTok
+      </a>
+    );
+  }
+
   if (open) {
     return <RsvpForm eventId={eventId} />;
   }

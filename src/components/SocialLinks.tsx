@@ -1,10 +1,10 @@
-import { FaTiktok, FaInstagram, FaFacebookF, FaPinterestP } from "react-icons/fa6";
+import { FaTiktok, FaInstagram, FaFacebookF, FaYoutube } from "react-icons/fa6";
 
 const SOCIALS = [
   { href: "https://www.tiktok.com/@moonlitmarginssisterhood", label: "TikTok", Icon: FaTiktok },
   { href: "https://www.instagram.com/moonlitmarginssisterhood", label: "Instagram", Icon: FaInstagram },
   { href: "https://www.facebook.com/groups/themoonlitmarginssisterhood", label: "Facebook", Icon: FaFacebookF },
-  { href: "https://www.pinterest.com/themoonlitmargins_sisterhood", label: "Pinterest", Icon: FaPinterestP },
+  { href: "https://www.youtube.com/@themoonlitmarginssisterhood", label: "YouTube", Icon: FaYoutube },
 ];
 
 export default function SocialLinks() {

@@ -6,13 +6,14 @@ import { supabaseServer } from "@/lib/supabase/server";
 const eventSchema = z.object({
   title: z.string().min(2),
   description: z.string().optional(),
-  eventType: z.enum(["reading_sprint", "tiktok_live", "author_event", "annual_meetup", "other"]),
+  eventType: z.enum(["reading_sprint", "tiktok_live", "author_event", "annual_meetup", "game_night", "other"]),
   startsAt: z.string(),
   location: z.string().optional(),
   linkUrl: z.string().optional(),
   coverImageUrl: z.string().optional(),
   registrationType: z.enum(["rsvp", "ticketing"]).optional(),
   status: z.enum(["scheduled", "canceled"]).optional(),
+  isPrivate: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, description, eventType, startsAt, location, linkUrl, coverImageUrl, registrationType, status } =
+  const { title, description, eventType, startsAt, location, linkUrl, coverImageUrl, registrationType, status, isPrivate } =
     parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase.from("events").insert({
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
     cover_image_url: coverImageUrl || null,
     registration_type: registrationType ?? "rsvp",
     status: status ?? "scheduled",
+    is_private: isPrivate ?? false,
   });
 
   if (error) {

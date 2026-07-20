@@ -4,7 +4,7 @@ const SOCIALS = [
   { href: "https://www.tiktok.com/@moonlitmarginssisterhood", label: "TikTok" },
   { href: "https://www.instagram.com/moonlitmarginssisterhood", label: "Instagram" },
   { href: "https://www.facebook.com/groups/themoonlitmarginssisterhood", label: "Facebook" },
-  { href: "https://www.pinterest.com/themoonlitmargins_sisterhood", label: "Pinterest" },
+  { href: "https://www.youtube.com/@themoonlitmarginssisterhood", label: "YouTube" },
 ];
 
 export default function Footer() {

@@ -103,15 +103,40 @@ function columnLetter(n: number): string {
 const TAB_CONFIG: Record<string, { tab: string; questionFields: string[] }> = {
   member: {
     tab: "Membership",
-    questionFields: ["whyJoin", "currentlyReading", "favoriteGenre", "timeZone"],
+    questionFields: [
+      "whyJoin",
+      "currentlyReading",
+      "favoriteGenre",
+      "timeZone",
+      "phone",
+      "state",
+      "howHeard",
+      "birthday",
+      "bookCrackedOpen",
+      "readerEnergy",
+      "whatDrawsYou",
+      "interviewAvailability",
+      "bookishSocials",
+      "whisper",
+    ],
   },
   interview: {
     tab: "Interview",
-    // The interview form (src/app/interview/page.tsx) only has four fields
-    // total -- role, workTitle, pitch, links -- so all of them are here.
-    // ("details" doesn't exist on this form; the free-text explanation
-    // field is actually named "pitch".)
-    questionFields: ["role", "workTitle", "pitch", "links"],
+    // Curated subset (role/workTitle/details/links) plus the newly added
+    // interview-logistics fields -- deliberately still not the form's full
+    // field list (genres/latestProject/upcomingReleases/whyFeature aren't
+    // included), matching the original curation choice.
+    questionFields: [
+      "role",
+      "workTitle",
+      "details",
+      "links",
+      "attendeeCount",
+      "datePreferred",
+      "authorType",
+      "publishingHouseName",
+      "needsBookReadPrior",
+    ],
   },
   collab: {
     tab: "Collab",

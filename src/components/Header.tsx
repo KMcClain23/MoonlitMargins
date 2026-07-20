@@ -10,8 +10,8 @@ const NAV_LINKS = [
   { href: "/sisterhood", label: "The sisterhood" },
   { href: "/events", label: "Events" },
   { href: "/memories", label: "Memories" },
-  { href: "/interview", label: "Interview with us" },
-  { href: "/collab", label: "Collab with us" },
+  { href: "/partner?type=interview", label: "Interview with us" },
+  { href: "/partner?type=collab", label: "Partner with us" },
 ];
 
 export default function Header() {

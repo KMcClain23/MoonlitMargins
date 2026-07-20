@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const KIND_LABELS: Record<string, string> = {
   member: "Membership",
   interview: "Interview",
-  collab: "Collab",
+  collab: "Partner",
 };
 
 async function getApplications(kind?: string, view?: string) {

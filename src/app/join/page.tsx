@@ -36,6 +36,65 @@ const FIELDS: FormField[] = [
     type: "text",
     required: true,
   },
+  {
+    name: "phone",
+    label: "Phone",
+    type: "text",
+    required: true,
+  },
+  {
+    name: "state",
+    label: "What state do you currently reside in?",
+    type: "text",
+    required: true,
+  },
+  {
+    name: "howHeard",
+    label: "How did you hear about us?",
+    type: "select",
+    required: true,
+    options: ["TikTok", "Instagram", "Facebook", "A friend or word of mouth", "Google search", "Other"],
+  },
+  {
+    name: "birthday",
+    label: "Birthday (year optional)",
+    type: "birthday",
+  },
+  {
+    name: "bookCrackedOpen",
+    label: "What book cracked something open in you and why?",
+    type: "textarea",
+    required: true,
+  },
+  {
+    name: "readerEnergy",
+    label: "Describe your reader energy in 3 words",
+    type: "text",
+    required: true,
+  },
+  {
+    name: "whatDrawsYou",
+    label: "What draws you to the Moonlit Margins community?",
+    type: "textarea",
+    required: true,
+  },
+  {
+    name: "interviewAvailability",
+    label: "If invited to interview, what days/times usually work for you?",
+    type: "checkbox-group",
+    required: true,
+    options: ["Weekday evenings", "Saturday mornings", "Saturday afternoons", "Sunday mornings", "Sunday afternoons"],
+  },
+  {
+    name: "bookishSocials",
+    label: "Drop your BookTok, Bookstagram, Goodreads, or other bookish socials (optional)",
+    type: "text",
+  },
+  {
+    name: "whisper",
+    label: "Anything you'd love to whisper into the sisterhood under the stars? (optional)",
+    type: "textarea",
+  },
 ];
 
 const INTERVIEWS_BEGIN = new Date(APPLICATIONS_REOPEN_AT).toLocaleDateString("en-US", {
@@ -70,6 +129,19 @@ export default function JoinPage() {
 
         <div className="mt-10">
           <Countdown target={APPLICATIONS_REOPEN_AT} title="Interviews begin in" informational />
+        </div>
+
+        {/* DRAFT COPY -- Dean, please edit this to say exactly what you want
+            new members to know before they apply. */}
+        <div className="mt-10 rounded-2xl border border-hairline bg-surface p-6">
+          <p className="font-voice text-lg text-parchment">What&rsquo;s required of me if I&rsquo;m accepted?</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Once accepted, we ask every sister to take part in at least one Book of the Month
+            discussion each cycle, show up (virtually or in person) when you&rsquo;re able, and
+            treat this community with the same care you&rsquo;d want back. Membership isn&rsquo;t a
+            spectator sport &mdash; it&rsquo;s a sisterhood, and it only works if we all show up
+            for it.
+          </p>
         </div>
 
         <div className="mt-12">

@@ -113,7 +113,7 @@ export default async function SisterhoodPage() {
       {everyoneElse.length > 0 ? (
         <section>
           <div className="mx-auto max-w-5xl px-6 py-20">
-            <Chapter number="four" title="The moonlit council" />
+            <Chapter number="four" title="The members" />
             <div className="grid gap-8 sm:grid-cols-2">
               <p className="max-w-md text-sm leading-relaxed text-muted">
                 The wider circle of sisters who make this a community instead

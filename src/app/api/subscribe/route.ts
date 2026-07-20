@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
+import { sendNewsletterSignupNotification } from "@/lib/resend";
 
 const subscribeSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -29,6 +30,12 @@ export async function POST(request: NextRequest) {
       { error: "Something went wrong signing you up. Try again." },
       { status: 500 }
     );
+  }
+
+  try {
+    await sendNewsletterSignupNotification(parsed.data.email);
+  } catch {
+    // Never block a signup on a failed notification email.
   }
 
   return NextResponse.json({ success: true });

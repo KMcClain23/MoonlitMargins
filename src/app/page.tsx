@@ -30,16 +30,8 @@ const PERKS = [
     body: "Early access to advance reader and listener copies through our author and narrator partners.",
   },
   {
-    title: "Live sprints and TikTok lives",
-    body: "Frequent virtual events, reading sprints, and lives to read and talk books in real time.",
-  },
-  {
-    title: "Author and narrator collabs",
-    body: "Direct interviews and collaborations with the authors and narrators behind the books we love.",
-  },
-  {
-    title: "Leadership track",
-    body: "Grow into a chapter president role and help shape the sisterhood as it grows.",
+    title: "Author and narrator partnerships",
+    body: "Direct interviews and partnerships with the authors and narrators behind the books we love.",
   },
   {
     title: "Meetups, big and small",
@@ -149,10 +141,6 @@ export default function Home() {
               </div>
             ))}
           </div>
-
-          <div className="mt-12">
-            <LinkButton href="/join">See the full application</LinkButton>
-          </div>
         </div>
       </section>
 
@@ -167,13 +155,13 @@ export default function Home() {
               body="For readers ready to become a member and take part in everything the club offers."
             />
             <PathCard
-              href="/interview"
+              href="/partner?type=interview"
               title="Interview with us"
               body="For narrators and authors who want to be featured and interviewed by the sisterhood."
             />
             <PathCard
-              href="/collab"
-              title="Collab with us"
+              href="/partner?type=collab"
+              title="Partner with us"
               body="For authors who want their book read, discussed, and featured with the club."
             />
           </div>

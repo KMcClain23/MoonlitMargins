@@ -2,15 +2,9 @@
 
 import { useState, FormEvent } from "react";
 import { SubmitButton } from "@/components/Button";
+import { Field, TextField, collectAnswers, type FormField } from "@/components/FormFields";
 
-export type FormField = {
-  name: string;
-  label: string;
-  type: "text" | "textarea" | "select" | "checkbox-group";
-  required?: boolean;
-  options?: string[];
-  placeholder?: string;
-};
+export type { FormField };
 
 export default function ApplicationForm({
   kind,
@@ -38,13 +32,7 @@ export default function ApplicationForm({
       }
     }
 
-    const answers: Record<string, string> = {};
-    for (const field of fields) {
-      answers[field.name] =
-        field.type === "checkbox-group"
-          ? formData.getAll(field.name).join(", ")
-          : String(formData.get(field.name) ?? "");
-    }
+    const answers = collectAnswers(formData, fields);
 
     const payload = {
       kind,
@@ -110,94 +98,4 @@ export default function ApplicationForm({
       </SubmitButton>
     </form>
   );
-}
-
-function TextField({
-  name,
-  label,
-  type = "text",
-  required,
-}: {
-  name: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-sm text-muted">{label}</span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment placeholder:text-muted/60 focus:border-lilac"
-      />
-    </label>
-  );
-}
-
-function Field({ field }: { field: FormField }) {
-  if (field.type === "textarea") {
-    return (
-      <label className="block">
-        <span className="mb-2 block text-sm text-muted">{field.label}</span>
-        <textarea
-          name={field.name}
-          required={field.required}
-          placeholder={field.placeholder}
-          rows={4}
-          className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment placeholder:text-muted/60 focus:border-lilac"
-        />
-      </label>
-    );
-  }
-
-  if (field.type === "checkbox-group") {
-    return (
-      <fieldset>
-        <legend className="mb-2 block text-sm text-muted">
-          {field.label}
-          {field.required ? <span className="text-candle"> *</span> : null}
-        </legend>
-        <div className="space-y-2">
-          {field.options?.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-sm text-parchment">
-              <input
-                type="checkbox"
-                name={field.name}
-                value={option}
-                className="h-4 w-4 rounded border-hairline"
-              />
-              {option}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-    );
-  }
-
-  if (field.type === "select") {
-    return (
-      <label className="block">
-        <span className="mb-2 block text-sm text-muted">{field.label}</span>
-        <select
-          name={field.name}
-          required={field.required}
-          defaultValue=""
-          className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac"
-        >
-          <option value="" disabled>
-            Choose one
-          </option>
-          {field.options?.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  }
-
-  return <TextField name={field.name} label={field.label} required={field.required} />;
 }

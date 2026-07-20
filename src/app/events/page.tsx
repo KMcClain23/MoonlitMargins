@@ -9,6 +9,7 @@ async function getAllEvents() {
   const { data } = await supabase
     .from("events")
     .select("id, slug, title, description, event_type, starts_at, location, link_url, cover_image_url, registration_type, status")
+    .eq("is_private", false)
     .order("starts_at", { ascending: true });
   return data ?? [];
 }

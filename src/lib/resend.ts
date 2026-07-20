@@ -13,7 +13,7 @@ function resend() {
 const KIND_LABELS: Record<"member" | "interview" | "collab", string> = {
   member: "Membership application",
   interview: "Interview request",
-  collab: "Author collaboration",
+  collab: "Author partnership",
 };
 
 export async function sendApplicationNotification(params: {
@@ -80,5 +80,22 @@ export async function sendMessageNotification(params: {
     to: recipientEmail,
     subject: `New message from ${senderName}`,
     text: `${senderName} sent a message in ${conversationLabel}:\n\n"${body}"\n\nReply in the admin panel under Messages.`,
+  });
+}
+
+/**
+ * Newsletter signups notify a specific address (Kaya's) rather than the
+ * general NOTIFY_EMAIL used for applications/RSVPs -- a deliberate,
+ * separate recipient per Dean's request.
+ */
+export async function sendNewsletterSignupNotification(email: string) {
+  const notifyEmail = process.env.NEWSLETTER_NOTIFY_EMAIL;
+  if (!notifyEmail) return; // Optional -- silently skip if not configured.
+
+  await resend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to: notifyEmail,
+    subject: "New newsletter signup",
+    text: `${email} just signed up for the Moonlit Margins Sisterhood newsletter.`,
   });
 }

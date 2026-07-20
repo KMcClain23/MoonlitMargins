@@ -97,7 +97,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
           <p className="text-sm text-muted">{event.location ?? "Virtual"}</p>
         </div>
 
-        <ShareRow title={event.title} />
+        <ShareRow />
       </div>
     </section>
   );
