@@ -17,13 +17,24 @@ export default function TaskForm({ members }: { members: { id: string; full_name
     setLoading(true);
     setError("");
 
+    const isGroup = assignedTo === "__all__" || assignedTo === "__leadership__";
+
+    if (isGroup) {
+      const groupLabel = assignedTo === "__all__" ? "everyone" : "leadership";
+      if (!confirm(`This creates a separate copy of this task for ${groupLabel}. Continue?`)) {
+        setLoading(false);
+        return;
+      }
+    }
+
     const res = await fetch("/api/admin/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         description: description || undefined,
-        assignedTo: assignedTo || undefined,
+        assignedTo: isGroup ? undefined : assignedTo || undefined,
+        assignToGroup: assignedTo === "__all__" ? "all" : assignedTo === "__leadership__" ? "leadership" : undefined,
         dueDate: dueDate || undefined,
       }),
     });
@@ -76,11 +87,17 @@ export default function TaskForm({ members }: { members: { id: string; full_name
             className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
           >
             <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.full_name}
-              </option>
-            ))}
+            <optgroup label="Groups">
+              <option value="__all__">Everyone</option>
+              <option value="__leadership__">Leadership (Founder/Council/Junior council)</option>
+            </optgroup>
+            <optgroup label="Individual">
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.full_name}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
 
