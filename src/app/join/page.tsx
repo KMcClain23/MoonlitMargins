@@ -1,3 +1,4 @@
+import Image from "next/image";
 import ApplicationForm, { FormField } from "@/components/ApplicationForm";
 import Chapter from "@/components/Chapter";
 import Countdown from "@/components/Countdown";
@@ -141,32 +142,43 @@ export default function JoinPage() {
   return (
     <section className="relative overflow-hidden">
       <div className="starfield-subtle" aria-hidden="true" />
-      <div className="relative mx-auto max-w-3xl px-6 py-20">
-        <Chapter number="one" title="Join the sisterhood" />
-        <h1 className="font-voice text-4xl text-parchment">Applications are open.</h1>
-        <p className="mt-2 font-voice text-lg italic text-lilac-soft">
-          We&rsquo;d love to get to know you.
-        </p>
+      <div className="relative mx-auto max-w-5xl px-6 py-20">
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          <div>
+            <Chapter number="one" title="Join the sisterhood" />
+            <h1 className="font-voice text-4xl text-parchment">Applications are open.</h1>
+            <p className="mt-2 font-voice text-lg italic text-lilac-soft">
+              We&rsquo;d love to get to know you.
+            </p>
 
-        <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted">
-          Applications are open, but we&rsquo;ll begin interviewing and welcoming
-          new sisters on {INTERVIEWS_BEGIN}. Until then, we&rsquo;re
-          intentionally pouring into the incredible community we&rsquo;ve
-          already built while preparing for our next chapter.
-        </p>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
-          If this community feels like the right fit for you, we encourage you
-          to apply now. We&rsquo;ll be waiting for you in January. Feel free to
-          share this with any woman you think would make a wonderful addition
-          to our sisterhood, too.
-        </p>
+            <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted">
+              Applications are open, but we&rsquo;ll begin interviewing and welcoming
+              new sisters on {INTERVIEWS_BEGIN}. Until then, we&rsquo;re
+              intentionally pouring into the incredible community we&rsquo;ve
+              already built while preparing for our next chapter.
+            </p>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
+              If this community feels like the right fit for you, we encourage you
+              to apply now. We&rsquo;ll be waiting for you in January. Feel free to
+              share this with any woman you think would make a wonderful addition
+              to our sisterhood, too.
+            </p>
+          </div>
+          <div className="relative mx-auto aspect-[1024/850] w-full max-w-md overflow-hidden rounded-2xl md:order-first">
+            <Image
+              src="/brand/dragon-illustration.png"
+              alt=""
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+        </div>
 
         <div className="mt-10">
           <Countdown target={APPLICATIONS_REOPEN_AT} title="Interviews begin in" informational />
         </div>
 
-        {/* DRAFT COPY -- Dean, please edit this to say exactly what you want
-            new members to know before they apply. */}
         <div className="mt-10 rounded-2xl border border-hairline bg-surface p-6">
           <p className="font-voice text-lg text-parchment">What&rsquo;s required of me if I&rsquo;m accepted?</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">

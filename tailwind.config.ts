@@ -5,21 +5,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#141227",
-        surface: "#1E1B38",
-        surfaceRaised: "#241F42",
-        parchment: "#F3EFE6",
-        muted: "#9C98B8",
+        ink: "#0A0A14",
+        surface: "#131320",
+        surfaceRaised: "#1B1B2C",
+        parchment: "#EDEDF2",
+        muted: "#9497AC",
         lilac: {
-          DEFAULT: "#8E86E5",
-          soft: "#B8B2F0",
-          deep: "#5C51B8",
+          DEFAULT: "#E8973D",
+          soft: "#F2C177",
+          deep: "#B8701F",
         },
         candle: {
-          DEFAULT: "#E8A33D",
-          soft: "#F2C87A",
+          DEFAULT: "#D9662E",
+          soft: "#E8916A",
         },
-        hairline: "rgba(243, 239, 230, 0.12)",
+        hairline: "rgba(237, 237, 242, 0.12)",
       },
       fontFamily: {
         display: ["var(--font-fraunces)", "Georgia", "serif"],
@@ -34,7 +34,7 @@ const config: Config = {
       },
       backgroundImage: {
         "moon-glow":
-          "radial-gradient(circle at 50% 0%, rgba(142,134,229,0.16), transparent 60%)",
+          "radial-gradient(circle at 50% 0%, rgba(232,151,61,0.14), transparent 60%)",
       },
     },
   },
