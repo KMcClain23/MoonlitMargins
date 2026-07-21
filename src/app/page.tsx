@@ -102,10 +102,10 @@ export default function Home() {
 
       {/* Welcome letter */}
       <section className="border-t border-hairline">
-        <div className="mx-auto grid max-w-5xl gap-10 px-6 py-24 md:grid-cols-[1fr_2fr]">
-          <Parallax speed={0.1}>
+        <Parallax speed={0.08} className="mx-auto grid max-w-5xl gap-10 px-6 py-24 md:grid-cols-[1fr_2fr]">
+          <div>
             <Chapter number="one" title="Welcome" />
-          </Parallax>
+          </div>
           <div className="max-w-prose">
             <p className="font-voice text-2xl italic text-lilac-soft">
               Dearest reader,
@@ -130,15 +130,13 @@ export default function Home() {
               </MarginNote>
             </div>
           </div>
-        </div>
+        </Parallax>
       </section>
 
       {/* Membership perks */}
       <section className="border-t border-hairline bg-surface/40">
-        <div className="mx-auto max-w-5xl px-6 py-24">
-          <Parallax speed={0.1}>
-            <Chapter number="two" title="What membership looks like" />
-          </Parallax>
+        <Parallax speed={0.08} className="mx-auto max-w-5xl px-6 py-24">
+          <Chapter number="two" title="What membership looks like" />
           <h2 className="font-voice text-3xl text-parchment sm:text-4xl">
             Everything that comes with pulling up a chair.
           </h2>
@@ -154,15 +152,13 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
+        </Parallax>
       </section>
 
       {/* Three paths */}
       <section className="border-t border-hairline">
-        <div className="mx-auto max-w-5xl px-6 py-24">
-          <Parallax speed={0.1}>
-            <Chapter number="three" title="Find your way in" />
-          </Parallax>
+        <Parallax speed={0.08} className="mx-auto max-w-5xl px-6 py-24">
+          <Chapter number="three" title="Find your way in" />
           <div className="grid gap-6 md:grid-cols-3">
             <PathCard
               href="/join"
@@ -180,22 +176,20 @@ export default function Home() {
               body="For authors who want their book read, discussed, and featured with the club."
             />
           </div>
-        </div>
+        </Parallax>
       </section>
 
       {/* Socials */}
       <section className="border-t border-hairline bg-surface/40">
-        <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-          <Parallax speed={0.1}>
-            <Chapter number="four" title="Keep in touch" />
-          </Parallax>
+        <Parallax speed={0.08} className="mx-auto max-w-4xl px-6 py-24 text-center">
+          <Chapter number="four" title="Keep in touch" />
           <h2 className="font-voice text-3xl italic text-parchment sm:text-4xl">
             Find us where the moonlight lingers&hellip;
           </h2>
           <div className="mt-8">
             <SocialLinks />
           </div>
-        </div>
+        </Parallax>
       </section>
     </>
   );
