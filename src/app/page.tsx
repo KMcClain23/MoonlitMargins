@@ -4,6 +4,7 @@ import MarginNote from "@/components/MarginNote";
 import Countdown from "@/components/Countdown";
 import BookStackMotif from "@/components/icons/BookStackMotif";
 import SocialLinks from "@/components/SocialLinks";
+import Parallax from "@/components/Parallax";
 import { APPLICATIONS_REOPEN_AT } from "@/lib/countdownTarget";
 
 const INTERVIEWS_BEGIN = new Date(APPLICATIONS_REOPEN_AT).toLocaleDateString("en-US", {
@@ -45,8 +46,18 @@ export default function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-moon-glow">
         <div className="starfield" aria-hidden="true" />
-        <BookStackMotif className="pointer-events-none absolute bottom-0 left-0 hidden h-64 w-40 lg:block" />
-        <BookStackMotif className="pointer-events-none absolute bottom-0 right-0 hidden h-64 w-40 lg:block" flip />
+        <Parallax
+          speed={0.15}
+          className="pointer-events-none absolute bottom-0 left-0 hidden h-64 w-40 lg:block"
+        >
+          <BookStackMotif className="h-full w-full" />
+        </Parallax>
+        <Parallax
+          speed={-0.15}
+          className="pointer-events-none absolute bottom-0 right-0 hidden h-64 w-40 lg:block"
+        >
+          <BookStackMotif className="h-full w-full" flip />
+        </Parallax>
         <div className="relative mx-auto max-w-4xl px-6 py-28 text-center">
           <p className="eyebrow mb-6">est. a sisterhood of readers</p>
           <h1 className="font-voice text-4xl leading-tight text-parchment sm:text-5xl md:text-6xl">
@@ -92,9 +103,9 @@ export default function Home() {
       {/* Welcome letter */}
       <section className="border-t border-hairline">
         <div className="mx-auto grid max-w-5xl gap-10 px-6 py-24 md:grid-cols-[1fr_2fr]">
-          <div>
+          <Parallax speed={0.1}>
             <Chapter number="one" title="Welcome" />
-          </div>
+          </Parallax>
           <div className="max-w-prose">
             <p className="font-voice text-2xl italic text-lilac-soft">
               Dearest reader,
@@ -125,7 +136,9 @@ export default function Home() {
       {/* Membership perks */}
       <section className="border-t border-hairline bg-surface/40">
         <div className="mx-auto max-w-5xl px-6 py-24">
-          <Chapter number="two" title="What membership looks like" />
+          <Parallax speed={0.1}>
+            <Chapter number="two" title="What membership looks like" />
+          </Parallax>
           <h2 className="font-voice text-3xl text-parchment sm:text-4xl">
             Everything that comes with pulling up a chair.
           </h2>
@@ -147,7 +160,9 @@ export default function Home() {
       {/* Three paths */}
       <section className="border-t border-hairline">
         <div className="mx-auto max-w-5xl px-6 py-24">
-          <Chapter number="three" title="Find your way in" />
+          <Parallax speed={0.1}>
+            <Chapter number="three" title="Find your way in" />
+          </Parallax>
           <div className="grid gap-6 md:grid-cols-3">
             <PathCard
               href="/join"
@@ -171,7 +186,9 @@ export default function Home() {
       {/* Socials */}
       <section className="border-t border-hairline bg-surface/40">
         <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-          <Chapter number="four" title="Keep in touch" />
+          <Parallax speed={0.1}>
+            <Chapter number="four" title="Keep in touch" />
+          </Parallax>
           <h2 className="font-voice text-3xl italic text-parchment sm:text-4xl">
             Find us where the moonlight lingers&hellip;
           </h2>
