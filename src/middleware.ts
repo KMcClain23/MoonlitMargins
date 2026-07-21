@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
+import { getSessionFromRequest } from "@/lib/adminAuth";
 import { sectionForPath } from "@/lib/adminSections";
+
+// Routes that issue a session rather than requiring one -- both must stay
+// reachable without auth, the same way /api/admin/login always has.
+const AUTH_BYPASS_API_PATHS = ["/api/admin/login", "/api/admin/auth/token-login"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isLoginRoute = pathname === "/admin/login";
   const isAdminRoute = pathname.startsWith("/admin");
-  const isAdminApi = pathname.startsWith("/api/admin") && pathname !== "/api/admin/login";
+  const isAdminApi = pathname.startsWith("/api/admin") && !AUTH_BYPASS_API_PATHS.includes(pathname);
 
   if (!isAdminRoute && !isAdminApi) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const session = parseSessionToken(token);
+  // Resolves either a bearer token (the React Native admin app) or the
+  // existing session cookie (web admin) -- see getSessionFromRequest for
+  // why bearer is checked first and doesn't fall back to the cookie.
+  const session = getSessionFromRequest(request);
 
   if (isAdminApi && !session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

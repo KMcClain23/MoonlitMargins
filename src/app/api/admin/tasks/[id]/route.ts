@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
+import { getSessionFromRequest } from "@/lib/adminAuth";
 
 const updateSchema = z.object({
   title: z.string().min(2),
@@ -12,7 +12,7 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const session = getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const session = getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/password";
-import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
+import { getSessionFromRequest } from "@/lib/adminAuth";
 import { ALL_SECTIONS } from "@/lib/adminSections";
 
 const grantSchema = z.object({
@@ -19,7 +19,7 @@ const grantSchema = z.object({
 // "users"), but double-checking role here too costs nothing and protects
 // against a future change to that default list accidentally widening this.
 function requireOwner(request: NextRequest) {
-  const session = parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const session = getSessionFromRequest(request);
   return session?.role === "owner" ? session : null;
 }
 

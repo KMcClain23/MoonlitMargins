@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { SESSION_COOKIE, createSessionToken, parseSessionToken } from "@/lib/adminAuth";
+import { SESSION_COOKIE, createSessionToken, getSessionFromRequest } from "@/lib/adminAuth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
 const schema = z.object({
@@ -10,8 +10,7 @@ const schema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const session = parseSessionToken(token);
+  const session = getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -43,21 +42,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Could not update password" }, { status: 500 });
   }
 
-  // Reissue the session cookie with mustChangePassword cleared -- otherwise
-  // the still-cached old session would keep middleware redirecting back to
-  // this same page immediately after a successful change, since sessions
-  // don't refresh mid-request on their own.
-  const response = NextResponse.json({ success: true });
-  response.cookies.set(
-    SESSION_COOKIE,
-    createSessionToken({ ...session, mustChangePassword: false }),
-    {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 12,
-    }
-  );
+  // Reissue the session with mustChangePassword cleared -- otherwise the
+  // still-cached old session would keep middleware redirecting/blocking
+  // right after a successful change, since sessions don't refresh mid-
+  // request on their own. Web keeps getting this via the cookie; a bearer
+  // client gets the same refreshed token back in the body so it can swap
+  // out whatever it has stored.
+  const refreshedToken = createSessionToken({ ...session, mustChangePassword: false });
+  const response = NextResponse.json({ success: true, token: refreshedToken });
+  response.cookies.set(SESSION_COOKIE, refreshedToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 12,
+  });
   return response;
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { hashPassword } from "@/lib/password";
-import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
+import { getSessionFromRequest } from "@/lib/adminAuth";
 import { ALL_SECTIONS, sectionsForRole } from "@/lib/adminSections";
 
 const updateSchema = z.object({
@@ -12,7 +12,7 @@ const updateSchema = z.object({
 });
 
 function requireOwner(request: NextRequest) {
-  const session = parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const session = getSessionFromRequest(request);
   return session?.role === "owner" ? session : null;
 }
 

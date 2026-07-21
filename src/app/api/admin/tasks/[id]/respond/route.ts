@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
+import { getSessionFromRequest } from "@/lib/adminAuth";
 
 const respondSchema = z.object({
   action: z.enum(["accept", "propose", "approve_proposal", "reject_proposal"]),
@@ -10,7 +10,7 @@ const respondSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const session = getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
