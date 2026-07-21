@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Chapter from "@/components/Chapter";
 import PartnerForm from "@/components/PartnerForm";
+import WavyFrame from "@/components/WavyFrame";
 
 export default function PartnerPage() {
   return (
@@ -19,7 +20,7 @@ export default function PartnerPage() {
               books with our members. Choose whichever fits below.
             </p>
           </div>
-          <div className="relative mx-auto aspect-[1024/850] w-full max-w-md overflow-hidden rounded-2xl md:order-first">
+          <WavyFrame className="relative mx-auto aspect-[1024/850] w-full max-w-md md:order-first">
             <Image
               src="/brand/dragon-illustration.png"
               alt=""
@@ -27,7 +28,7 @@ export default function PartnerPage() {
               className="object-cover"
               priority
             />
-          </div>
+          </WavyFrame>
         </div>
 
         <div className="mt-12">

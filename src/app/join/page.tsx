@@ -2,6 +2,7 @@ import Image from "next/image";
 import ApplicationForm, { FormField } from "@/components/ApplicationForm";
 import Chapter from "@/components/Chapter";
 import Countdown from "@/components/Countdown";
+import WavyFrame from "@/components/WavyFrame";
 import { APPLICATIONS_REOPEN_AT } from "@/lib/countdownTarget";
 
 const US_STATES = [
@@ -164,7 +165,7 @@ export default function JoinPage() {
               to our sisterhood, too.
             </p>
           </div>
-          <div className="relative mx-auto aspect-[1024/850] w-full max-w-md overflow-hidden rounded-2xl md:order-first">
+          <WavyFrame className="relative mx-auto aspect-[1024/850] w-full max-w-md md:order-first">
             <Image
               src="/brand/dragon-illustration.png"
               alt=""
@@ -172,7 +173,7 @@ export default function JoinPage() {
               className="object-cover"
               priority
             />
-          </div>
+          </WavyFrame>
         </div>
 
         <div className="mt-10">
