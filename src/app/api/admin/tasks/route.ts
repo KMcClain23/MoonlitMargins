@@ -11,6 +11,62 @@ const taskSchema = z.object({
   dueDate: z.string().optional(),
 });
 
+// Mirrors the three queries src/app/admin/tasks/page.tsx runs directly
+// against Supabase (server component, no API route needed there) -- the
+// mobile app has no equivalent way to do that, so this is its one real
+// GET endpoint for the task list. Session's memberId/canAssignTasks are
+// already returned from login and cached client-side, so they're
+// deliberately not repeated here.
+export async function GET(request: NextRequest) {
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const supabase = supabaseServer();
+
+  const { data: tasks } = await supabase
+    .from("tasks")
+    .select(
+      "id, title, description, assigned_to, assigned_by, due_date, status, acceptance_status, proposed_due_date, response_message, created_at"
+    )
+    .order("due_date", { ascending: true, nullsFirst: false });
+
+  const { data: members } = await supabase
+    .from("members")
+    .select("id, full_name")
+    .order("full_name", { ascending: true });
+
+  const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name, member_id");
+
+  const memberNames = new Map((members ?? []).map((m) => [m.id, m.full_name]));
+  const adminUserNames = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
+
+  // Members who have their own admin_users login -- see the same comment
+  // in page.tsx: an owner/admin can only act "on behalf of" someone who
+  // has NO login of their own.
+  const membersWithLogin = new Set((adminUsers ?? []).map((u) => u.member_id).filter(Boolean));
+
+  return NextResponse.json({
+    tasks: (tasks ?? []).map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      assignedTo: task.assigned_to,
+      assignedBy: task.assigned_by,
+      dueDate: task.due_date,
+      status: task.status,
+      acceptanceStatus: task.acceptance_status,
+      proposedDueDate: task.proposed_due_date,
+      responseMessage: task.response_message,
+      createdAt: task.created_at,
+      assigneeName: task.assigned_to ? memberNames.get(task.assigned_to) ?? "Unknown" : null,
+      assigneeHasLogin: task.assigned_to ? membersWithLogin.has(task.assigned_to) : false,
+      assignerName: adminUserNames.get(task.assigned_by) ?? "Unknown",
+    })),
+  });
+}
+
 export async function POST(request: NextRequest) {
   const session = getSessionFromRequest(request);
   if (!session) {
