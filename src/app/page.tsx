@@ -47,7 +47,7 @@ export default function Home() {
           z-index (kept well under the header's z-50), so as you keep
           scrolling, the next section slides up and covers the one before
           it entirely. */}
-      <section className="sticky top-0 z-[1] flex min-h-screen items-center overflow-hidden bg-ink bg-moon-glow">
+      <section className="overflow-hidden bg-ink bg-moon-glow md:sticky md:top-0 md:z-[1] md:flex md:min-h-screen md:items-center">
         <div className="starfield" aria-hidden="true" />
         <Parallax
           speed={0.15}
@@ -84,7 +84,7 @@ export default function Home() {
       {/* Combined: applications/countdown + the welcome letter -- two
           related "getting to know us" ideas sharing one fuller section
           instead of each being a thin, sparse screen on its own. */}
-      <section className="sticky top-0 z-[2] flex min-h-screen items-center bg-surface">
+      <section className="bg-surface md:sticky md:top-0 md:z-[2] md:flex md:min-h-screen md:items-center">
         <Parallax speed={0.08} className="mx-auto grid max-w-5xl gap-12 px-6 py-24 md:grid-cols-2">
           <div>
             <Chapter number="one" title="Welcome" />
@@ -132,7 +132,7 @@ export default function Home() {
 
       {/* Combined: membership perks + the three paths in, sharing one
           fuller section instead of two thinner ones. */}
-      <section className="sticky top-0 z-[3] flex min-h-screen items-center bg-ink">
+      <section className="bg-ink md:sticky md:top-0 md:z-[3] md:flex md:min-h-screen md:items-center">
         <Parallax speed={0.08} className="mx-auto max-w-5xl px-6 py-24">
           <Chapter number="two" title="What membership looks like" />
           <h2 className="font-voice text-3xl text-parchment sm:text-4xl">
@@ -177,7 +177,7 @@ export default function Home() {
       {/* Socials -- deliberately a smaller closing section, not a full
           screen like the others, since it's the last thing before the
           footer and doesn't need to compete for that much space. */}
-      <section className="sticky top-0 z-[4] bg-surface">
+      <section className="bg-surface md:sticky md:top-0 md:z-[4]">
         <Parallax speed={0.08} className="mx-auto max-w-4xl px-6 py-16 text-center">
           <Chapter number="four" title="Keep in touch" />
           <h2 className="font-voice text-3xl italic text-parchment sm:text-4xl">
