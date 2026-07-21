@@ -10,7 +10,6 @@ const NAV_LINKS = [
   { href: "/sisterhood", label: "The sisterhood" },
   { href: "/events", label: "Events" },
   { href: "/memories", label: "Memories" },
-  { href: "/partner?type=interview", label: "Interview with us" },
   { href: "/partner?type=collab", label: "Partner with us" },
 ];
 
