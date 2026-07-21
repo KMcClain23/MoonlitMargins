@@ -44,22 +44,20 @@ export default function Home() {
   return (
     <>
       {/* Hero -- each section below is `sticky top-0` with an increasing
-          z-index, so as you keep scrolling, the next section slides up and
-          covers the one before it entirely, rather than the sections just
-          scrolling past each other normally. Solid (non-transparent)
-          backgrounds are required for this -- see-through sections would
-          let the pinned one underneath show through while stacking. */}
+          z-index (kept well under the header's z-50), so as you keep
+          scrolling, the next section slides up and covers the one before
+          it entirely. */}
       <section className="sticky top-0 z-[1] flex min-h-screen items-center overflow-hidden bg-ink bg-moon-glow">
         <div className="starfield" aria-hidden="true" />
         <Parallax
           speed={0.15}
-          className="pointer-events-none absolute bottom-0 left-0 hidden h-64 w-40 lg:block"
+          className="pointer-events-none absolute bottom-8 left-8 hidden h-56 w-36 lg:block"
         >
           <BookStackMotif className="h-full w-full" />
         </Parallax>
         <Parallax
           speed={-0.15}
-          className="pointer-events-none absolute bottom-0 right-0 hidden h-64 w-40 lg:block"
+          className="pointer-events-none absolute bottom-8 right-8 hidden h-56 w-36 lg:block"
         >
           <BookStackMotif className="h-full w-full" flip />
         </Parallax>
@@ -83,33 +81,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Applications open + informational countdown to interviews beginning */}
+      {/* Combined: applications/countdown + the welcome letter -- two
+          related "getting to know us" ideas sharing one fuller section
+          instead of each being a thin, sparse screen on its own. */}
       <section className="sticky top-0 z-[2] flex min-h-screen items-center bg-surface">
-        <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-          <p className="font-voice text-2xl text-parchment">Applications are open.</p>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
-            We&rsquo;d love to get to know you. We&rsquo;ll begin interviewing
-            and welcoming new sisters on {INTERVIEWS_BEGIN}. Until then,
-            we&rsquo;re pouring into the community we&rsquo;ve already built.
-            If this feels like the right fit, go ahead and apply. We&rsquo;ll
-            be waiting for you in January.
-          </p>
-
-          <div className="mt-10">
-            <Countdown target={APPLICATIONS_REOPEN_AT} title="Interviews begin in" informational />
-          </div>
-
-          <div className="mt-10">
-            <LinkButton href="/join">Apply to join</LinkButton>
-          </div>
-        </div>
-      </section>
-
-      {/* Welcome letter */}
-      <section className="sticky top-0 z-[3] flex min-h-screen items-center bg-ink">
-        <Parallax speed={0.08} className="mx-auto grid max-w-5xl gap-10 px-6 py-24 md:grid-cols-[1fr_2fr]">
+        <Parallax speed={0.08} className="mx-auto grid max-w-5xl gap-12 px-6 py-24 md:grid-cols-2">
           <div>
             <Chapter number="one" title="Welcome" />
+            <p className="font-voice text-2xl text-parchment">Applications are open.</p>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
+              We&rsquo;d love to get to know you. We&rsquo;ll begin interviewing
+              and welcoming new sisters on {INTERVIEWS_BEGIN}. Until then,
+              we&rsquo;re pouring into the community we&rsquo;ve already built.
+              If this feels like the right fit, go ahead and apply. We&rsquo;ll
+              be waiting for you in January.
+            </p>
+            <div className="mt-8">
+              <Countdown target={APPLICATIONS_REOPEN_AT} title="Interviews begin in" informational />
+            </div>
+            <div className="mt-8">
+              <LinkButton href="/join">Apply to join</LinkButton>
+            </div>
           </div>
           <div className="max-w-prose">
             <p className="font-voice text-2xl italic text-lilac-soft">
@@ -138,8 +130,9 @@ export default function Home() {
         </Parallax>
       </section>
 
-      {/* Membership perks */}
-      <section className="sticky top-0 z-[4] flex min-h-screen items-center bg-surface">
+      {/* Combined: membership perks + the three paths in, sharing one
+          fuller section instead of two thinner ones. */}
+      <section className="sticky top-0 z-[3] flex min-h-screen items-center bg-ink">
         <Parallax speed={0.08} className="mx-auto max-w-5xl px-6 py-24">
           <Chapter number="two" title="What membership looks like" />
           <h2 className="font-voice text-3xl text-parchment sm:text-4xl">
@@ -150,43 +143,42 @@ export default function Home() {
             {PERKS.map((perk) => (
               <div
                 key={perk.title}
-                className="rounded-2xl border border-hairline bg-ink p-6"
+                className="rounded-2xl border border-hairline bg-surface p-6"
               >
                 <p className="font-voice text-lg text-lilac-soft">{perk.title}</p>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{perk.body}</p>
               </div>
             ))}
           </div>
-        </Parallax>
-      </section>
 
-      {/* Three paths */}
-      <section className="sticky top-0 z-[5] flex min-h-screen items-center bg-ink">
-        <Parallax speed={0.08} className="mx-auto max-w-5xl px-6 py-24">
-          <Chapter number="three" title="Find your way in" />
-          <div className="grid gap-6 md:grid-cols-3">
-            <PathCard
-              href="/join"
-              title="Join the sisterhood"
-              body="For readers ready to become a member and take part in everything the club offers."
-            />
-            <PathCard
-              href="/partner?type=interview"
-              title="Interview with us"
-              body="For narrators and authors who want to be featured and interviewed by the sisterhood."
-            />
-            <PathCard
-              href="/partner?type=collab"
-              title="Partner with us"
-              body="For authors who want their book read, discussed, and featured with the club."
-            />
+          <div className="mt-16">
+            <Chapter number="three" title="Find your way in" />
+            <div className="grid gap-6 md:grid-cols-3">
+              <PathCard
+                href="/join"
+                title="Join the sisterhood"
+                body="For readers ready to become a member and take part in everything the club offers."
+              />
+              <PathCard
+                href="/partner?type=interview"
+                title="Interview with us"
+                body="For narrators and authors who want to be featured and interviewed by the sisterhood."
+              />
+              <PathCard
+                href="/partner?type=collab"
+                title="Partner with us"
+                body="For authors who want their book read, discussed, and featured with the club."
+              />
+            </div>
           </div>
         </Parallax>
       </section>
 
-      {/* Socials */}
-      <section className="sticky top-0 z-[6] flex min-h-screen items-center bg-surface">
-        <Parallax speed={0.08} className="mx-auto max-w-4xl px-6 py-24 text-center">
+      {/* Socials -- deliberately a smaller closing section, not a full
+          screen like the others, since it's the last thing before the
+          footer and doesn't need to compete for that much space. */}
+      <section className="sticky top-0 z-[4] bg-surface">
+        <Parallax speed={0.08} className="mx-auto max-w-4xl px-6 py-16 text-center">
           <Chapter number="four" title="Keep in touch" />
           <h2 className="font-voice text-3xl italic text-parchment sm:text-4xl">
             Find us where the moonlight lingers&hellip;
