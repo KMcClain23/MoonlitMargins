@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getSessionFromRequest } from "@/lib/adminAuth";
 
 const memberSchema = z.object({
   fullName: z.string().min(2),
@@ -15,6 +16,26 @@ const memberSchema = z.object({
   tier: z.enum(["founder", "council", "junior_council", "member"]).optional(),
   socials: z.record(z.string()).optional(),
 });
+
+// Just id/full_name -- this backs the mobile app's assignment picker, not
+// a full member-profile fetch, so it deliberately skips tier/role/bio/
+// socials/etc.
+export async function GET(request: NextRequest) {
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const supabase = supabaseServer();
+  const { data: members } = await supabase
+    .from("members")
+    .select("id, full_name")
+    .order("full_name", { ascending: true });
+
+  return NextResponse.json({
+    members: (members ?? []).map((m) => ({ id: m.id, fullName: m.full_name })),
+  });
+}
 
 export async function POST(request: NextRequest) {
   const parsed = memberSchema.safeParse(await request.json());
