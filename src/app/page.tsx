@@ -56,7 +56,7 @@ export default function Home() {
           <BookStackMotif className="h-full w-full" />
         </Parallax>
         <Parallax
-          speed={-0.15}
+          speed={0.15}
           className="pointer-events-none absolute bottom-8 right-8 hidden h-56 w-36 lg:block"
         >
           <BookStackMotif className="h-full w-full" flip />
