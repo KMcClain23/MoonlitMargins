@@ -176,6 +176,8 @@ export async function sendMessageAndNotify(
     if (tokens.length > 0) {
       const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
 
+      console.log("Sending Expo push notification", { tokenCount: tokens.length, recipientIds });
+
       const response = await fetch("https://exp.host/--/api/v2/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -189,9 +191,12 @@ export async function sendMessageAndNotify(
         ),
       });
 
-      if (!response.ok) {
-        console.error("Expo push send failed", response.status, await response.text());
-      }
+      // A 200 alone doesn't mean delivery succeeded -- Expo's push API
+      // returns a body with a per-token receipt/error (e.g.
+      // DeviceNotRegistered, InvalidCredentials) even on a "successful"
+      // request, so the full body is logged here, not just the status.
+      const responseBody = await response.json();
+      console.log("Expo push send response", response.status, responseBody);
     }
   } catch (err) {
     // Never let a notification failure affect the already-sent message --
