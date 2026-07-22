@@ -37,11 +37,37 @@ export async function GET(request: NextRequest) {
 
   const { data: allParticipants } = await supabase
     .from("conversation_participants")
-    .select("conversation_id, admin_user_id")
+    .select("conversation_id, admin_user_id, last_read_at")
     .in("conversation_id", (conversations ?? []).map((c) => c.id));
 
   const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name");
   const nameById = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
+
+  // Unread count per conversation: messages from someone else, sent
+  // after the requester's own last_read_at for that conversation (or
+  // all of them, if they've never read it at all).
+  const { data: unreadCandidates } = await supabase
+    .from("messages")
+    .select("conversation_id, created_at")
+    .in("conversation_id", (conversations ?? []).map((c) => c.id))
+    .neq("sender_id", session.adminUserId);
+
+  const lastReadByConversation = new Map(
+    (allParticipants ?? [])
+      .filter((p) => p.admin_user_id === session.adminUserId)
+      .map((p) => [p.conversation_id, p.last_read_at as string | null])
+  );
+
+  const unreadCountByConversation = new Map<string, number>();
+  for (const message of unreadCandidates ?? []) {
+    const lastReadAt = lastReadByConversation.get(message.conversation_id);
+    if (!lastReadAt || message.created_at > lastReadAt) {
+      unreadCountByConversation.set(
+        message.conversation_id,
+        (unreadCountByConversation.get(message.conversation_id) ?? 0) + 1
+      );
+    }
+  }
 
   const result = (conversations ?? []).map((c) => {
     const participantIds = (allParticipants ?? [])
@@ -55,6 +81,7 @@ export async function GET(request: NextRequest) {
       type: c.type,
       title: c.type === "direct" ? otherNames.join(", ") : c.title || "Untitled group",
       createdAt: c.created_at,
+      unreadCount: unreadCountByConversation.get(c.id) ?? 0,
     };
   });
 

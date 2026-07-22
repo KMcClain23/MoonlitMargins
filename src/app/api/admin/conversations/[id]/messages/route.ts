@@ -41,6 +41,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { data: senders } = await supabase.from("admin_users").select("id, full_name").in("id", senderIds);
   const nameById = new Map((senders ?? []).map((s) => [s.id, s.full_name]));
 
+  // Marks this conversation as read for the requester -- powers the
+  // unread count in GET /api/admin/conversations. Awaited (not
+  // fire-and-forget) since a serverless function can be torn down right
+  // after the response is sent.
+  await supabase
+    .from("conversation_participants")
+    .update({ last_read_at: new Date().toISOString() })
+    .eq("conversation_id", id)
+    .eq("admin_user_id", session.adminUserId);
+
   return NextResponse.json({
     messages: (messages ?? []).map((m) => ({
       id: m.id,
