@@ -176,7 +176,7 @@ export async function sendMessageAndNotify(
     if (tokens.length > 0) {
       const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
 
-      await fetch("https://exp.host/--/api/v2/push/send", {
+      const response = await fetch("https://exp.host/--/api/v2/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
@@ -188,9 +188,15 @@ export async function sendMessageAndNotify(
           }))
         ),
       });
+
+      if (!response.ok) {
+        console.error("Expo push send failed", response.status, await response.text());
+      }
     }
-  } catch {
-    // Never let a notification failure affect the already-sent message.
+  } catch (err) {
+    // Never let a notification failure affect the already-sent message --
+    // just log it for diagnostics.
+    console.error("Expo push send threw", err);
   }
 }
 
