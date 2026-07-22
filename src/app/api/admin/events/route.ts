@@ -18,6 +18,37 @@ const eventSchema = z.object({
   targetTiers: z.array(z.string()).optional(),
 });
 
+// Auth + section-level access ("events") are already enforced centrally by
+// middleware.ts for every /api/admin/* route -- no session check here, same
+// as applications/route.ts.
+export async function GET() {
+  const supabase = supabaseServer();
+  const { data: events } = await supabase
+    .from("events")
+    .select(
+      "id, title, description, event_type, starts_at, location, link_url, cover_image_url, registration_type, status, is_private, target_tiers, slug"
+    )
+    .order("starts_at", { ascending: true });
+
+  return NextResponse.json({
+    events: (events ?? []).map((event) => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      eventType: event.event_type,
+      startsAt: event.starts_at,
+      location: event.location,
+      linkUrl: event.link_url,
+      coverImageUrl: event.cover_image_url,
+      registrationType: event.registration_type,
+      status: event.status,
+      isPrivate: event.is_private,
+      targetTiers: event.target_tiers,
+      slug: event.slug,
+    })),
+  });
+}
+
 export async function POST(request: NextRequest) {
   const parsed = eventSchema.safeParse(await request.json());
   if (!parsed.success) {
