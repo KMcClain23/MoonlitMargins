@@ -161,6 +161,37 @@ export async function sendMessageAndNotify(
       })
     )
   );
+
+  // Best-effort push notification too -- same "never block the message"
+  // rule as the email above. A missing/unreachable Expo push endpoint (or
+  // simply no registered devices) must not affect message delivery.
+  try {
+    const { data: pushTokenRows } = await supabase
+      .from("admin_push_tokens")
+      .select("expo_push_token")
+      .in("admin_user_id", recipientIds);
+
+    const tokens = (pushTokenRows ?? []).map((row) => row.expo_push_token as string);
+
+    if (tokens.length > 0) {
+      const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
+
+      await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          tokens.map((expoPushToken) => ({
+            to: expoPushToken,
+            title: sender.full_name as string,
+            body: truncatedBody,
+            data: { conversationId },
+          }))
+        ),
+      });
+    }
+  } catch {
+    // Never let a notification failure affect the already-sent message.
+  }
 }
 
 /**

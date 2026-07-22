@@ -23,6 +23,28 @@ function requireOwner(request: NextRequest) {
   return session?.role === "owner" ? session : null;
 }
 
+// Unlike POST, any authenticated admin_user can list teammates (e.g. for
+// the messages composer's recipient picker) -- this only requires a valid
+// session, not the owner-only gate that requireOwner() enforces below.
+export async function GET(request: NextRequest) {
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const supabase = supabaseServer();
+  const { data: users } = await supabase
+    .from("admin_users")
+    .select("id, full_name")
+    .order("full_name", { ascending: true });
+
+  return NextResponse.json({
+    users: (users ?? [])
+      .filter((user) => user.id !== session.adminUserId)
+      .map((user) => ({ id: user.id, fullName: user.full_name })),
+  });
+}
+
 export async function POST(request: NextRequest) {
   if (!requireOwner(request)) {
     return NextResponse.json({ error: "Only the owner can grant admin access" }, { status: 403 });

@@ -36,12 +36,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
+  // GET /api/admin/users powers the messages composer's recipient picker
+  // for every authenticated admin_user, not just owners who have "users"
+  // in their sections -- unlike POST (creating new admin accounts), which
+  // stays owner-only via both this section gate and the route's own
+  // requireOwner() check.
+  const isUsersListRequest = pathname === "/api/admin/users" && request.method === "GET";
+
   // Section-level access control: being logged in isn't enough on its own --
   // a role (or a member's specific allowed_sections override) can still
   // block a given admin area, e.g. an "editor" reaching /admin/users.
   if (session) {
     const section = sectionForPath(pathname);
-    if (section && !session.sections.includes(section)) {
+    if (section && !isUsersListRequest && !session.sections.includes(section)) {
       if (isAdminApi) {
         return NextResponse.json({ error: "Not authorized for this section" }, { status: 403 });
       }
