@@ -20,6 +20,8 @@ export default function MessagesApp({
   const [composeText, setComposeText] = useState("");
   const [sending, setSending] = useState(false);
 
+  const [leaving, setLeaving] = useState(false);
+
   const [showNew, setShowNew] = useState(false);
   const [newType, setNewType] = useState<"direct" | "group">("direct");
   const [newParticipantIds, setNewParticipantIds] = useState<string[]>([]);
@@ -71,6 +73,24 @@ export default function MessagesApp({
     if (res.ok) {
       setComposeText("");
       loadMessages(selectedId);
+    }
+  }
+
+  async function handleLeave(conversationId: string) {
+    if (!confirm("Leave this conversation? You won't see it here anymore.")) return;
+    setLeaving(true);
+    const res = await fetch(`/api/admin/conversations/${conversationId}`, { method: "DELETE" });
+    setLeaving(false);
+    if (res.ok) {
+      // Only this row's participation is gone server-side -- drop it from
+      // the local list directly rather than refetching everything.
+      setConversations((current) => current.filter((c) => c.id !== conversationId));
+      if (selectedId === conversationId) {
+        setSelectedId(null);
+        setMessages([]);
+      }
+    } else {
+      alert("Couldn't leave that conversation.");
     }
   }
 
@@ -211,9 +231,16 @@ export default function MessagesApp({
           <p className="m-auto text-sm text-muted">Select a conversation, or start a new one.</p>
         ) : (
           <>
-            <p className="border-b border-hairline pb-3 font-voice text-lg text-parchment">
-              {selectedConversation.title}
-            </p>
+            <div className="flex items-center justify-between border-b border-hairline pb-3">
+              <p className="font-voice text-lg text-parchment">{selectedConversation.title}</p>
+              <button
+                onClick={() => handleLeave(selectedConversation.id)}
+                disabled={leaving}
+                className="text-xs text-candle transition-colors hover:underline disabled:opacity-50"
+              >
+                Leave
+              </button>
+            </div>
             <div className="flex-1 space-y-3 overflow-y-auto py-4">
               {messages.map((m) => (
                 <div key={m.id} className={m.senderId === currentUserId ? "text-right" : ""}>
