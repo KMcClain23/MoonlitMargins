@@ -7,6 +7,7 @@ const registerSchema = z.object({
   expoPushToken: z.string().min(1),
   deviceId: z.string().min(1),
   platform: z.string().min(1),
+  preferredChannelId: z.string().min(1).optional(),
 });
 
 const unregisterSchema = z.object({
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { expoPushToken, deviceId, platform } = parsed.data;
+  const { expoPushToken, deviceId, platform, preferredChannelId } = parsed.data;
   const supabase = supabaseServer();
 
   const { error } = await supabase.from("admin_push_tokens").upsert(
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
       device_id: deviceId,
       expo_push_token: expoPushToken,
       platform,
+      preferred_channel_id: preferredChannelId ?? "messages-default",
       updated_at: new Date().toISOString(),
     },
     { onConflict: "admin_user_id,device_id" }

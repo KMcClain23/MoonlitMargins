@@ -176,10 +176,10 @@ export async function sendMessageAndNotify(
 
     const { data: pushTokenRows } = await supabase
       .from("admin_push_tokens")
-      .select("expo_push_token")
+      .select("expo_push_token, preferred_channel_id")
       .in("admin_user_id", pushRecipientIds);
 
-    const tokens = (pushTokenRows ?? []).map((row) => row.expo_push_token as string);
+    const tokens = pushTokenRows ?? [];
 
     if (tokens.length > 0) {
       const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
@@ -190,11 +190,14 @@ export async function sendMessageAndNotify(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          tokens.map((expoPushToken) => ({
-            to: expoPushToken,
+          tokens.map((row) => ({
+            to: row.expo_push_token as string,
             title: sender.full_name as string,
             body: truncatedBody,
             data: { conversationId },
+            // Android-only -- picks which pre-created notification channel
+            // (sound/vibration) the device displays this under. iOS ignores it.
+            channelId: row.preferred_channel_id as string,
           }))
         ),
       });
