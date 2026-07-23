@@ -130,7 +130,7 @@ export async function sendMessageAndNotify(
 
   const { data: participants } = await supabase
     .from("conversation_participants")
-    .select("admin_user_id")
+    .select("admin_user_id, muted")
     .eq("conversation_id", conversationId)
     .neq("admin_user_id", senderId);
 
@@ -166,17 +166,25 @@ export async function sendMessageAndNotify(
   // rule as the email above. A missing/unreachable Expo push endpoint (or
   // simply no registered devices) must not affect message delivery.
   try {
+    // Muted participants still get the message (it's inserted above,
+    // unconditionally) and it still counts toward their unread total --
+    // muting only suppresses the push notification itself.
+    const mutedIds = new Set((participants ?? []).filter((p) => p.muted).map((p) => p.admin_user_id));
+    const pushRecipientIds = recipientIds.filter((recipientId) => !mutedIds.has(recipientId));
+
+    if (pushRecipientIds.length === 0) return;
+
     const { data: pushTokenRows } = await supabase
       .from("admin_push_tokens")
       .select("expo_push_token")
-      .in("admin_user_id", recipientIds);
+      .in("admin_user_id", pushRecipientIds);
 
     const tokens = (pushTokenRows ?? []).map((row) => row.expo_push_token as string);
 
     if (tokens.length > 0) {
       const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
 
-      console.log("Sending Expo push notification", { tokenCount: tokens.length, recipientIds });
+      console.log("Sending Expo push notification", { tokenCount: tokens.length, recipientIds: pushRecipientIds });
 
       const response = await fetch("https://exp.host/--/api/v2/push/send", {
         method: "POST",

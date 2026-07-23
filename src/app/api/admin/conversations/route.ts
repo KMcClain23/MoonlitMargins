@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const { data: allParticipants } = await supabase
     .from("conversation_participants")
-    .select("conversation_id, admin_user_id, last_read_at")
+    .select("conversation_id, admin_user_id, last_read_at, muted")
     .in("conversation_id", (conversations ?? []).map((c) => c.id));
 
   const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name");
@@ -56,6 +56,12 @@ export async function GET(request: NextRequest) {
     (allParticipants ?? [])
       .filter((p) => p.admin_user_id === session.adminUserId)
       .map((p) => [p.conversation_id, p.last_read_at as string | null])
+  );
+
+  const mutedByConversation = new Map(
+    (allParticipants ?? [])
+      .filter((p) => p.admin_user_id === session.adminUserId)
+      .map((p) => [p.conversation_id, Boolean(p.muted)])
   );
 
   const unreadCountByConversation = new Map<string, number>();
@@ -82,6 +88,7 @@ export async function GET(request: NextRequest) {
       title: c.type === "direct" ? otherNames.join(", ") : c.title || "Untitled group",
       createdAt: c.created_at,
       unreadCount: unreadCountByConversation.get(c.id) ?? 0,
+      muted: mutedByConversation.get(c.id) ?? false,
     };
   });
 
