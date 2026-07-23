@@ -3,9 +3,14 @@ import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getSessionFromRequest } from "@/lib/adminAuth";
 
-const patchSchema = z.object({
-  muted: z.boolean(),
-});
+const patchSchema = z
+  .object({
+    muted: z.boolean().optional(),
+    read: z.boolean().optional(),
+  })
+  .refine((data) => data.muted !== undefined || data.read !== undefined, {
+    message: "Provide at least one of muted or read",
+  });
 
 async function requireParticipant(supabase: ReturnType<typeof supabaseServer>, conversationId: string, adminUserId: string) {
   const { data } = await supabase
@@ -17,10 +22,11 @@ async function requireParticipant(supabase: ReturnType<typeof supabaseServer>, c
   return Boolean(data);
 }
 
-// Mutes/unmutes push notifications for this conversation -- only for the
-// requester's own participant row. Doesn't affect other participants,
-// the conversation itself, or whether messages still arrive/count as
-// unread for the requester -- muting only suppresses push.
+// Updates the requester's own conversation_participants row -- muted
+// (suppresses push only, per the comment on that column's usage in
+// sendMessageAndNotify) and/or read (last_read_at) are both optional and
+// independent; a request can change either, both, or -- since at least
+// one must be present -- never neither.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = getSessionFromRequest(request);
   if (!session) {
@@ -30,7 +36,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params;
   const parsed = patchSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+    // The "at least one of muted/read" check is a whole-body refine (no
+    // single field it belongs to), so it lands in formErrors rather than
+    // fieldErrors -- return the full flatten() rather than just
+    // fieldErrors, or that message would silently disappear.
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
   const supabase = supabaseServer();
@@ -39,18 +49,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Not a participant of this conversation" }, { status: 403 });
   }
 
-  const { muted } = parsed.data;
+  const { muted, read } = parsed.data;
+  const updates: { muted?: boolean; last_read_at?: string | null } = {};
+  if (muted !== undefined) updates.muted = muted;
+  if (read !== undefined) updates.last_read_at = read ? new Date().toISOString() : null;
+
   const { error } = await supabase
     .from("conversation_participants")
-    .update({ muted })
+    .update(updates)
     .eq("conversation_id", id)
     .eq("admin_user_id", session.adminUserId);
 
   if (error) {
-    return NextResponse.json({ error: "Could not update mute setting" }, { status: 500 });
+    return NextResponse.json({ error: "Could not update conversation" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, muted });
+  return NextResponse.json({ success: true, ...parsed.data });
 }
 
 // "Leave conversation" -- removes only the requester's own participant
