@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/adminAuth";
 import { sectionForPath } from "@/lib/adminSections";
 
-// Routes that issue a session rather than requiring one -- both must stay
+// Routes that issue a session rather than requiring one -- all must stay
 // reachable without auth, the same way /api/admin/login always has.
-const AUTH_BYPASS_API_PATHS = ["/api/admin/login", "/api/admin/auth/token-login"];
+// Google's redirect flow (google + google/callback) and the mobile
+// token exchange (google/token) are no different: whoever hits them
+// doesn't have a session yet by definition.
+const AUTH_BYPASS_API_PATHS = [
+  "/api/admin/login",
+  "/api/admin/auth/token-login",
+  "/api/admin/auth/google",
+  "/api/admin/auth/google/callback",
+  "/api/admin/auth/google/token",
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

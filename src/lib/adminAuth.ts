@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import type { NextRequest } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { verifyPassword } from "@/lib/password";
 import { sectionsForRole, type AdminRole, type AdminSection } from "@/lib/adminSections";
@@ -80,6 +80,37 @@ export function getSessionFromRequest(request: NextRequest): AdminSession | null
   return parseSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
 }
 
+// Shape shared by every path that can resolve an existing admin_users row
+// into a signable session -- password login, and (see googleAuth.ts)
+// Google sign-in, which looks up the same table by email instead of
+// checking a password.
+type AdminUserRow = {
+  id: string;
+  full_name: string;
+  role: string;
+  allowed_sections: string[] | null;
+  member_id: string | null;
+  must_change_password: boolean;
+  can_assign_tasks: boolean;
+};
+
+/** Maps an admin_users row to the session shape createSessionToken()
+ * signs -- the one place that translates a DB row into a session, so
+ * every login path (password, Google) that resolves a row stays in sync
+ * with role/section logic automatically. */
+export function sessionFromAdminUserRow(row: AdminUserRow): Omit<AdminSession, "expiry"> {
+  const role = row.role as AdminRole;
+  return {
+    adminUserId: row.id,
+    memberId: row.member_id,
+    fullName: row.full_name,
+    role,
+    sections: sectionsForRole(role, row.allowed_sections),
+    mustChangePassword: row.must_change_password,
+    canAssignTasks: row.can_assign_tasks,
+  };
+}
+
 /**
  * Checks an email/password pair against admin_users and, on success,
  * returns the session payload (minus `expiry`, which createSessionToken
@@ -105,18 +136,28 @@ export async function verifyCredentials(
     return null;
   }
 
-  const role = adminUser.role as AdminRole;
-  const sections = sectionsForRole(role, adminUser.allowed_sections);
+  return sessionFromAdminUserRow(adminUser);
+}
 
-  return {
-    adminUserId: adminUser.id,
-    memberId: adminUser.member_id,
-    fullName: adminUser.full_name,
-    role,
-    sections,
-    mustChangePassword: adminUser.must_change_password,
-    canAssignTasks: adminUser.can_assign_tasks,
-  };
+// Matches SESSION_TTL_MS above, in seconds rather than milliseconds --
+// cookies.set() takes maxAge in seconds.
+const SESSION_COOKIE_MAX_AGE_SECONDS = SESSION_TTL_MS / 1000;
+
+/**
+ * Sets the signed session cookie on a NextResponse -- the single place
+ * that actually issues a web session, used by both password login
+ * (/api/admin/login) and Google sign-in (/api/admin/auth/google/callback)
+ * so their cookie options (httpOnly/secure/sameSite/maxAge) can never
+ * drift apart between the two entry points.
+ */
+export function setSessionCookie(response: NextResponse, session: Omit<AdminSession, "expiry">): void {
+  response.cookies.set(SESSION_COOKIE, createSessionToken(session), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
+  });
 }
 
 export { SESSION_COOKIE };

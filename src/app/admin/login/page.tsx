@@ -16,6 +16,15 @@ export default function AdminLoginPage() {
     const params = new URLSearchParams(window.location.search);
     const reason = params.get("reason");
     if (reason === "manual" || reason === "inactive") setSignedOutNotice(reason);
+
+    // Set by GET /api/admin/auth/google/callback when it redirects back
+    // here instead of issuing a session.
+    const googleError = params.get("error");
+    if (googleError === "no_account") {
+      setError("No admin account found for this Google email.");
+    } else if (googleError === "google_failed") {
+      setError("Something went wrong signing in with Google. Try again.");
+    }
   }, []);
 
   async function handleSubmit(event: FormEvent) {
@@ -92,6 +101,21 @@ export default function AdminLoginPage() {
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
+
+      <div className="mt-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-hairline" />
+        <span className="text-xs text-muted">or</span>
+        <div className="h-px flex-1 bg-hairline" />
+      </div>
+
+      {/* Plain navigation, not a fetch -- GET /api/admin/auth/google
+          redirects the whole page to Google's consent screen. */}
+      <a
+        href="/api/admin/auth/google"
+        className="mt-6 block w-full rounded-full border border-hairline bg-surface px-6 py-3 text-center text-sm font-medium text-parchment transition-colors hover:border-lilac"
+      >
+        Sign in with Google
+      </a>
     </div>
   );
 }
