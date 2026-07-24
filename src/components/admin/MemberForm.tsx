@@ -18,6 +18,7 @@ type MemberValues = {
   photo_offset_y?: number;
   socials?: SocialsMap | null;
   tier?: "founder" | "council" | "junior_council" | "member";
+  hide_from_directory?: boolean | null;
 };
 
 export default function MemberForm({
@@ -44,6 +45,7 @@ export default function MemberForm({
   const [photoZoom, setPhotoZoom] = useState(member?.photo_zoom ?? 1);
   const [photoOffsetX, setPhotoOffsetX] = useState(member?.photo_offset_x ?? 0);
   const [photoOffsetY, setPhotoOffsetY] = useState(member?.photo_offset_y ?? 0);
+  const [hideFromDirectory, setHideFromDirectory] = useState(member?.hide_from_directory ?? false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,6 +71,7 @@ export default function MemberForm({
       photoOffsetY,
       socials,
       tier: String(formData.get("tier") ?? "member"),
+      hideFromDirectory,
     };
 
     const url = isEditing ? `/api/admin/members/${member!.id}` : "/api/admin/members";
@@ -94,6 +97,7 @@ export default function MemberForm({
       setPhotoZoom(1);
       setPhotoOffsetX(0);
       setPhotoOffsetY(0);
+      setHideFromDirectory(false);
     }
     router.refresh();
     onDone?.();
@@ -226,6 +230,16 @@ export default function MemberForm({
             defaultValue={member?.bio ?? ""}
             className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
           />
+        </label>
+
+        <label className="flex items-center gap-2 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={hideFromDirectory}
+            onChange={(e) => setHideFromDirectory(e.target.checked)}
+            className="h-3.5 w-3.5"
+          />
+          <span className="text-xs text-muted">Hide from public &ldquo;Find a Sister&rdquo; directory</span>
         </label>
       </div>
 

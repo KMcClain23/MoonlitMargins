@@ -14,6 +14,7 @@ const memberSchema = z.object({
   photoOffsetY: z.number().min(-50).max(50).optional(),
   tier: z.enum(["founder", "council", "junior_council", "member"]).optional(),
   socials: z.record(z.string()).optional(),
+  hideFromDirectory: z.boolean().optional(),
 });
 
 export async function DELETE(
@@ -42,7 +43,8 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials } = parsed.data;
+  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory } =
+    parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase
     .from("members")
@@ -58,6 +60,7 @@ export async function PATCH(
       tier: tier ?? "member",
       is_leadership: tier ? tier !== "member" : false,
       socials: socials ?? {},
+      hide_from_directory: hideFromDirectory ?? false,
     })
     .eq("id", id);
 
