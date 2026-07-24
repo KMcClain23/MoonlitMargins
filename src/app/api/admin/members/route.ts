@@ -16,6 +16,7 @@ const memberSchema = z.object({
   tier: z.enum(["founder", "council", "junior_council", "member"]).optional(),
   socials: z.record(z.string()).optional(),
   hideFromDirectory: z.boolean().optional(),
+  state: z.string().optional(),
 });
 
 // Full member fields -- also backs the mobile app's assignment picker,
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   const { data: members } = await supabase
     .from("members")
     .select(
-      "id, full_name, role, bio, email, photo_url, photo_zoom, photo_offset_x, photo_offset_y, tier, socials, hide_from_directory"
+      "id, full_name, role, bio, email, photo_url, photo_zoom, photo_offset_x, photo_offset_y, tier, socials, hide_from_directory, state"
     )
     .order("full_name", { ascending: true });
 
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
       tier: m.tier,
       socials: m.socials,
       hideFromDirectory: m.hide_from_directory,
+      state: m.state,
     })),
   });
 }
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory } =
+  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory, state } =
     parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase.from("members").insert({
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
     is_leadership: tier ? tier !== "member" : false,
     socials: socials ?? {},
     hide_from_directory: hideFromDirectory ?? false,
+    state: state || null,
   });
 
   if (error) {
