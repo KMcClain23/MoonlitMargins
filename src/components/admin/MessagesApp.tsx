@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 type Conversation = {
   id: string;
@@ -13,6 +14,11 @@ type Conversation = {
    * when the conversation has no messages yet. */
   lastMessagePreview: string | null;
   lastMessageIsMine: boolean;
+  /** Direct conversations only -- the other participant's linked member
+   * photo, or null if they have none. Always null for groups (a group
+   * can't be represented by one person's photo), which keep using
+   * initials below regardless of this field. */
+  otherParticipantPhotoUrl: string | null;
 };
 type Message = { id: string; senderId: string; senderName: string; body: string; createdAt: string };
 
@@ -263,9 +269,21 @@ export default function MessagesApp({
                     onClick={() => setSelectedId(c.id)}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lilac/15 text-xs font-semibold text-lilac-soft">
-                      {getInitials(c.title)}
-                    </div>
+                    {c.type === "direct" && c.otherParticipantPhotoUrl ? (
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
+                        <Image
+                          src={c.otherParticipantPhotoUrl}
+                          alt={c.title}
+                          fill
+                          sizes="36px"
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lilac/15 text-xs font-semibold text-lilac-soft">
+                        {getInitials(c.title)}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p
