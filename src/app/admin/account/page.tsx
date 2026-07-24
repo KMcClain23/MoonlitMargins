@@ -11,6 +11,10 @@ export default function AccountPage() {
   const [error, setError] = useState("");
   const [redirecting, setRedirecting] = useState(false);
 
+  const [linkedGoogleEmail, setLinkedGoogleEmail] = useState<string | null>(null);
+  const [googleNotice, setGoogleNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+
   useEffect(() => {
     fetch("/api/admin/me")
       .then((res) => (res.ok ? res.json() : null))
@@ -18,8 +22,34 @@ export default function AccountPage() {
         if (!data) return;
         setMustChangePassword(Boolean(data.mustChangePassword));
         if (data.sections?.[0]) setDefaultSection(data.sections[0]);
+        setLinkedGoogleEmail(data.linkedGoogleEmail ?? null);
       })
       .catch(() => {});
+  }, []);
+
+  // Set by GET /api/admin/auth/google/callback when it redirects back
+  // here after a "link Google account" attempt.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linked = params.get("linked");
+    const linkError = params.get("error");
+
+    if (linked === "success") {
+      setGoogleNotice({ type: "success", message: "Google account linked." });
+    } else if (linkError === "already_linked") {
+      setGoogleNotice({
+        type: "error",
+        message: "That Google account is already linked to a different admin.",
+      });
+    } else if (linkError === "google_failed") {
+      setGoogleNotice({ type: "error", message: "Something went wrong linking your Google account. Try again." });
+    }
+
+    if (linked || linkError) {
+      // Drop the query params so refreshing the page doesn't re-show a
+      // stale notice.
+      window.history.replaceState({}, "", "/admin/account");
+    }
   }, []);
 
   async function handleSubmit(e: FormEvent) {
@@ -64,6 +94,23 @@ export default function AccountPage() {
         window.location.href = `/admin/${defaultSection}`;
       }, 1200);
     }
+  }
+
+  async function handleUnlinkGoogle() {
+    setIsUnlinking(true);
+    setGoogleNotice(null);
+
+    const res = await fetch("/api/admin/account/unlink-google", { method: "PATCH" });
+
+    setIsUnlinking(false);
+
+    if (!res.ok) {
+      setGoogleNotice({ type: "error", message: "Couldn't unlink your Google account. Try again." });
+      return;
+    }
+
+    setLinkedGoogleEmail(null);
+    setGoogleNotice({ type: "success", message: "Google account unlinked." });
   }
 
   return (
@@ -117,6 +164,46 @@ export default function AccountPage() {
           {status === "loading" ? "Saving…" : "Update password"}
         </button>
       </form>
+
+      <div className="mt-6 max-w-sm space-y-4 rounded-2xl border border-hairline bg-surface p-6">
+        <p className="font-voice text-lg text-parchment">Google account</p>
+
+        {googleNotice ? (
+          <p className={`text-sm ${googleNotice.type === "error" ? "text-candle" : "text-lilac-soft"}`}>
+            {googleNotice.message}
+          </p>
+        ) : null}
+
+        {linkedGoogleEmail ? (
+          <>
+            <p className="text-sm text-muted">
+              Linked to <span className="text-parchment">{linkedGoogleEmail}</span>
+            </p>
+            <button
+              type="button"
+              onClick={handleUnlinkGoogle}
+              disabled={isUnlinking}
+              className="rounded-full border border-hairline px-5 py-2 text-sm font-medium text-parchment transition-colors hover:border-candle disabled:opacity-50"
+            >
+              {isUnlinking ? "Unlinking…" : "Unlink"}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted">
+              Link a Google account for quick sign-in, separate from your login email.
+            </p>
+            {/* Plain navigation, not a fetch -- GET /api/admin/auth/google/link
+                redirects the whole page to Google's consent screen. */}
+            <a
+              href="/api/admin/auth/google/link"
+              className="inline-block rounded-full border border-hairline px-5 py-2 text-sm font-medium text-parchment transition-colors hover:border-lilac"
+            >
+              Link Google Account
+            </a>
+          </>
+        )}
+      </div>
     </div>
   );
 }

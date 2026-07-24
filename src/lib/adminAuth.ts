@@ -18,15 +18,18 @@ export type AdminSession = {
   expiry: number;
 };
 
-function sign(value: string) {
+// Exported so other signed-token needs (see googleAuth.ts's `state` param
+// for the "link a Google account" flow) reuse this exact HMAC primitive
+// and encoding instead of standing up a second signing mechanism.
+export function sign(value: string) {
   return createHmac("sha256", process.env.ADMIN_SESSION_SECRET!).update(value).digest("hex");
 }
 
-function base64UrlEncode(value: string) {
+export function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
 }
 
-function base64UrlDecode(value: string) {
+export function base64UrlDecode(value: string) {
   return Buffer.from(value, "base64url").toString("utf8");
 }
 

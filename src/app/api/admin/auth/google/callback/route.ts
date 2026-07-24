@@ -1,25 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setSessionCookie } from "@/lib/adminAuth";
-import { findAdminUserByGoogleEmail, verifyGoogleIdToken } from "@/lib/googleAuth";
+import {
+  findAdminUserByGoogleEmail,
+  linkGoogleEmailToAdminUser,
+  verifyGoogleIdToken,
+  verifyLinkState,
+} from "@/lib/googleAuth";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
 /**
  * Google redirects here with a `code` after the person approves (or
- * denies) access on the consent screen. Exchanges that code for tokens,
- * verifies the id_token, and looks up a matching admin_users row by
- * email -- issues the exact same signed session cookie the password
- * login route does (via setSessionCookie, shared rather than
- * reimplemented) if found, or bounces back to the login page with an
- * error query param if not. Never creates a new admin account.
+ * denies) access on the consent screen -- for BOTH flows that send them
+ * to Google: plain login (GET /api/admin/auth/google) and linking a
+ * Google account to an already-signed-in admin
+ * (GET /api/admin/auth/google/link). A present and validly-signed
+ * `state` param means this is the linking flow; its absence means login,
+ * exactly as this route behaved before linking existed.
  */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const loginUrl = new URL("/admin/login", request.url);
+  const linkingAdminUserId = verifyLinkState(request.nextUrl.searchParams.get("state"));
+  const isLinking = linkingAdminUserId !== null;
+
+  // Where to bounce back to on any failure -- the account page mid-link,
+  // the login page mid-login. Success has its own explicit redirects
+  // below, since where it lands differs by outcome, not just by mode.
+  function failureRedirect(error: string) {
+    const url = new URL(isLinking ? "/admin/account" : "/admin/login", request.url);
+    url.searchParams.set("error", error);
+    return NextResponse.redirect(url);
+  }
 
   if (!code) {
-    loginUrl.searchParams.set("error", "google_failed");
-    return NextResponse.redirect(loginUrl);
+    return failureRedirect("google_failed");
   }
 
   try {
@@ -36,23 +50,32 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tokenResponse.ok) {
-      loginUrl.searchParams.set("error", "google_failed");
-      return NextResponse.redirect(loginUrl);
+      return failureRedirect("google_failed");
     }
 
     const tokenData = await tokenResponse.json();
     const idToken = tokenData.id_token;
     if (typeof idToken !== "string") {
-      loginUrl.searchParams.set("error", "google_failed");
-      return NextResponse.redirect(loginUrl);
+      return failureRedirect("google_failed");
     }
 
     const email = await verifyGoogleIdToken(idToken);
+
+    if (isLinking) {
+      const result = await linkGoogleEmailToAdminUser(linkingAdminUserId, email);
+      const accountUrl = new URL("/admin/account", request.url);
+      if (result === "linked") {
+        accountUrl.searchParams.set("linked", "success");
+      } else {
+        accountUrl.searchParams.set("error", result === "already_linked" ? "already_linked" : "google_failed");
+      }
+      return NextResponse.redirect(accountUrl);
+    }
+
     const session = await findAdminUserByGoogleEmail(email);
 
     if (!session) {
-      loginUrl.searchParams.set("error", "no_account");
-      return NextResponse.redirect(loginUrl);
+      return failureRedirect("no_account");
     }
 
     // /admin itself redirects to /admin/applications (see
@@ -62,7 +85,6 @@ export async function GET(request: NextRequest) {
     setSessionCookie(response, session);
     return response;
   } catch {
-    loginUrl.searchParams.set("error", "google_failed");
-    return NextResponse.redirect(loginUrl);
+    return failureRedirect("google_failed");
   }
 }
