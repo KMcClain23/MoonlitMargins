@@ -40,8 +40,22 @@ export async function GET(request: NextRequest) {
     .select("conversation_id, admin_user_id, last_read_at, muted")
     .in("conversation_id", (conversations ?? []).map((c) => c.id));
 
-  const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name");
+  const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name, member_id");
   const nameById = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
+
+  // Not every admin_user has a linked member profile (e.g. a developer
+  // account) -- those simply have no photo, not an error.
+  const memberIds = (adminUsers ?? [])
+    .map((u) => u.member_id)
+    .filter((id): id is string => id !== null);
+  const { data: members } =
+    memberIds.length > 0
+      ? await supabase.from("members").select("id, photo_url").in("id", memberIds)
+      : { data: [] };
+  const photoUrlByMemberId = new Map((members ?? []).map((m) => [m.id, m.photo_url as string | null]));
+  const photoUrlByAdminUserId = new Map(
+    (adminUsers ?? []).map((u) => [u.id, u.member_id ? (photoUrlByMemberId.get(u.member_id) ?? null) : null])
+  );
 
   // One fetch covers both the unread count AND the list row's
   // last-message preview -- every message (not just other people's) in
@@ -96,10 +110,16 @@ export async function GET(request: NextRequest) {
     const participantIds = (allParticipants ?? [])
       .filter((p) => p.conversation_id === c.id)
       .map((p) => p.admin_user_id);
-    const otherNames = participantIds
-      .filter((id) => id !== session.adminUserId)
-      .map((id) => nameById.get(id) ?? "Unknown");
+    const otherParticipantIds = participantIds.filter((id) => id !== session.adminUserId);
+    const otherNames = otherParticipantIds.map((id) => nameById.get(id) ?? "Unknown");
     const lastMessage = lastMessageByConversation.get(c.id) ?? null;
+    // A group can't be represented by one person's photo -- only direct
+    // conversations (exactly one other participant) get a photo, so the
+    // UI keeps falling back to initials for groups.
+    const otherParticipantPhotoUrl =
+      c.type === "direct" && otherParticipantIds.length === 1
+        ? (photoUrlByAdminUserId.get(otherParticipantIds[0]!) ?? null)
+        : null;
     return {
       id: c.id,
       type: c.type,
@@ -109,6 +129,7 @@ export async function GET(request: NextRequest) {
       muted: mutedByConversation.get(c.id) ?? false,
       lastMessagePreview: lastMessage?.body ?? null,
       lastMessageIsMine: lastMessage ? lastMessage.senderId === session.adminUserId : false,
+      otherParticipantPhotoUrl,
     };
   });
 
