@@ -2,10 +2,43 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Conversation = { id: string; type: "direct" | "group"; title: string; createdAt: string };
+type Conversation = {
+  id: string;
+  type: "direct" | "group";
+  title: string;
+  createdAt: string;
+  unreadCount: number;
+  muted: boolean;
+  /** Truncated server-side -- see GET /api/admin/conversations. Null
+   * when the conversation has no messages yet. */
+  lastMessagePreview: string | null;
+  lastMessageIsMine: boolean;
+};
 type Message = { id: string; senderId: string; senderName: string; body: string; createdAt: string };
 
 const POLL_INTERVAL_MS = 5000;
+
+// Matches the mobile app's own getInitials() convention (first letter of
+// the first word + first letter of the last word), so a person's avatar
+// initials read the same on both platforms.
+function getInitials(title: string): string {
+  const parts = title.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+  return (first + last).toUpperCase();
+}
+
+// GET /api/admin/conversations falls back to this exact literal string
+// for a group created without a name -- checked against it directly
+// (rather than e.g. "no title set") so the softened styling below only
+// applies to that specific fallback, not to a group someone genuinely
+// named "Untitled group" on purpose.
+const UNTITLED_GROUP_TITLE = "Untitled group";
+
+function formatMessageTime(createdAt: string): string {
+  return new Date(createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+}
 
 export default function MessagesApp({
   currentUserId,
@@ -76,6 +109,11 @@ export default function MessagesApp({
     }
   }
 
+  // Already existed and already worked (DELETE /api/admin/conversations/[id]
+  // was built for the mobile app and wired up here too) -- what was
+  // actually missing was a way to reach it without first opening the
+  // conversation. The per-row hover icon added below calls this same
+  // function; nothing about the leave logic itself needed to change.
   async function handleLeave(conversationId: string) {
     if (!confirm("Leave this conversation? You won't see it here anymore.")) return;
     setLeaving(true);
@@ -119,16 +157,18 @@ export default function MessagesApp({
   }
 
   const selectedConversation = conversations.find((c) => c.id === selectedId);
+  const isSelectedUntitledGroup =
+    selectedConversation?.type === "group" && selectedConversation.title === UNTITLED_GROUP_TITLE;
 
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-[280px_1fr]">
-      <div className="rounded-2xl border border-hairline bg-surface p-3">
+      <div className="flex h-[700px] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface p-3">
         {/* Desktop: full-width bar button, same as always. Mobile: a
             floating circular "+" button instead (below), so this one is
             hidden there. */}
         <button
           onClick={() => setShowNew((v) => !v)}
-          className="mb-3 hidden w-full rounded-full bg-lilac px-4 py-2 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft sm:block"
+          className="mb-3 hidden w-full shrink-0 rounded-full bg-lilac px-4 py-2 text-xs font-medium text-ink transition-colors hover:bg-lilac-soft sm:block"
         >
           New message
         </button>
@@ -147,7 +187,7 @@ export default function MessagesApp({
         </button>
 
         {showNew ? (
-          <div className="mb-3 space-y-3 rounded-xl border border-hairline bg-ink p-3">
+          <div className="mb-3 shrink-0 space-y-3 rounded-xl border border-hairline bg-ink p-3">
             <div className="flex gap-2 text-xs">
               <button
                 onClick={() => setNewType("direct")}
@@ -206,59 +246,107 @@ export default function MessagesApp({
           </div>
         ) : null}
 
-        <div className="space-y-1">
+        <div className="conversation-list-scroll -mx-3 flex-1 divide-y divide-hairline overflow-y-auto">
           {conversations.length === 0 ? (
-            <p className="p-2 text-xs text-muted">No conversations yet.</p>
+            <p className="px-3 py-2 text-xs text-muted">No conversations yet.</p>
           ) : (
-            conversations.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedId(c.id)}
-                className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                  selectedId === c.id ? "bg-lilac/20 text-parchment" : "text-muted hover:bg-ink hover:text-parchment"
-                }`}
-              >
-                {c.title}
-                {c.type === "group" ? <span className="ml-1.5 text-[10px] text-lilac-soft">Group</span> : null}
-              </button>
-            ))
+            conversations.map((c) => {
+              const isUntitled = c.type === "group" && c.title === UNTITLED_GROUP_TITLE;
+              return (
+                <div
+                  key={c.id}
+                  className={`group flex w-full items-center gap-3 px-3 py-2.5 transition-colors ${
+                    selectedId === c.id ? "bg-surfaceRaised" : "hover:bg-surfaceRaised/60"
+                  }`}
+                >
+                  <button
+                    onClick={() => setSelectedId(c.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lilac/15 text-xs font-semibold text-lilac-soft">
+                      {getInitials(c.title)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p
+                          className={`truncate text-sm font-medium ${
+                            isUntitled ? "italic text-muted" : "text-parchment"
+                          }`}
+                        >
+                          {c.title}
+                        </p>
+                        {c.type === "group" ? (
+                          <span className="shrink-0 text-[10px] text-lilac-soft">Group</span>
+                        ) : null}
+                      </div>
+                      {c.lastMessagePreview ? (
+                        <p className="mt-0.5 truncate text-xs text-muted">
+                          {c.lastMessageIsMine ? "You: " : ""}
+                          {c.lastMessagePreview}
+                        </p>
+                      ) : null}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleLeave(c.id)}
+                    disabled={leaving}
+                    aria-label="Leave conversation"
+                    title="Leave conversation"
+                    className="shrink-0 rounded-full p-1.5 text-muted opacity-0 transition-opacity hover:bg-candle/15 hover:text-candle disabled:opacity-50 group-hover:opacity-100"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 6L18 15M18 6L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
 
-      <div className="flex min-h-[400px] flex-col rounded-2xl border border-hairline bg-surface p-4">
+      <div className="flex h-[700px] flex-col overflow-hidden rounded-2xl border border-hairline bg-surface">
         {!selectedConversation ? (
           <p className="m-auto text-sm text-muted">Select a conversation, or start a new one.</p>
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-hairline pb-3">
-              <p className="font-voice text-lg text-parchment">{selectedConversation.title}</p>
+            <div className="flex shrink-0 items-center justify-between border-b border-hairline px-4 py-3">
+              <p
+                className={`font-voice text-lg ${isSelectedUntitledGroup ? "italic text-muted" : "text-parchment"}`}
+              >
+                {selectedConversation.title}
+              </p>
               <button
                 onClick={() => handleLeave(selectedConversation.id)}
                 disabled={leaving}
-                className="text-xs text-candle transition-colors hover:underline disabled:opacity-50"
+                className="shrink-0 text-xs text-candle transition-colors hover:underline disabled:opacity-50"
               >
                 Leave
               </button>
             </div>
-            <div className="flex-1 space-y-3 overflow-y-auto py-4">
-              {messages.map((m) => (
-                <div key={m.id} className={m.senderId === currentUserId ? "text-right" : ""}>
-                  <p className="text-[10px] text-muted">
-                    {m.senderId === currentUserId ? "You" : m.senderName} ·{" "}
-                    {new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
-                  </p>
-                  <p
-                    className={`mt-1 inline-block max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                      m.senderId === currentUserId ? "bg-lilac text-ink" : "bg-ink text-parchment"
-                    }`}
-                  >
-                    {m.body}
-                  </p>
-                </div>
-              ))}
+
+            <div className="flex-1 space-y-4 overflow-y-auto bg-ink px-4 py-4">
+              {messages.map((m) => {
+                const isMine = m.senderId === currentUserId;
+                return (
+                  <div key={m.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                    <p className="mb-1 font-mono text-[10px] uppercase tracking-wide text-muted">
+                      {isMine ? "You" : m.senderName} · {formatMessageTime(m.createdAt)}
+                    </p>
+                    <p
+                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                        isMine ? "rounded-br-sm bg-lilac text-ink" : "rounded-bl-sm bg-surface text-parchment"
+                      }`}
+                    >
+                      {m.body}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex gap-2 border-t border-hairline pt-3">
+
+            <div className="flex shrink-0 gap-2 border-t border-hairline bg-surfaceRaised px-4 py-3">
               <input
                 value={composeText}
                 onChange={(e) => setComposeText(e.target.value)}
@@ -266,12 +354,12 @@ export default function MessagesApp({
                   if (e.key === "Enter") handleSend();
                 }}
                 placeholder="Type a message…"
-                className="flex-1 rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
+                className="flex-1 rounded-full border border-hairline bg-surface px-4 py-2.5 text-sm text-parchment focus:border-lilac"
               />
               <button
                 onClick={handleSend}
                 disabled={sending || !composeText.trim()}
-                className="rounded-full bg-lilac px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-lilac-soft disabled:opacity-50"
+                className="shrink-0 rounded-full bg-lilac px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-lilac-soft disabled:opacity-50"
               >
                 Send
               </button>

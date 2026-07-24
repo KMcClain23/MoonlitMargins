@@ -43,14 +43,16 @@ export async function GET(request: NextRequest) {
   const { data: adminUsers } = await supabase.from("admin_users").select("id, full_name");
   const nameById = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
 
-  // Unread count per conversation: messages from someone else, sent
-  // after the requester's own last_read_at for that conversation (or
-  // all of them, if they've never read it at all).
-  const { data: unreadCandidates } = await supabase
+  // One fetch covers both the unread count AND the list row's
+  // last-message preview -- every message (not just other people's) in
+  // these conversations, newest first, so a single pass below can derive
+  // "how many came in after I last read this" and "what's the very first
+  // (i.e. most recent) one" at the same time, rather than querying twice.
+  const { data: recentMessages } = await supabase
     .from("messages")
-    .select("conversation_id, created_at")
+    .select("conversation_id, sender_id, body, created_at")
     .in("conversation_id", (conversations ?? []).map((c) => c.id))
-    .neq("sender_id", session.adminUserId);
+    .order("created_at", { ascending: false });
 
   const lastReadByConversation = new Map(
     (allParticipants ?? [])
@@ -65,13 +67,28 @@ export async function GET(request: NextRequest) {
   );
 
   const unreadCountByConversation = new Map<string, number>();
-  for (const message of unreadCandidates ?? []) {
-    const lastReadAt = lastReadByConversation.get(message.conversation_id);
-    if (!lastReadAt || message.created_at > lastReadAt) {
-      unreadCountByConversation.set(
-        message.conversation_id,
-        (unreadCountByConversation.get(message.conversation_id) ?? 0) + 1
-      );
+  // Truncated here (not just client-side) so the response stays lean
+  // regardless of how long a real message body gets.
+  const lastMessageByConversation = new Map<string, { body: string; senderId: string }>();
+
+  for (const message of recentMessages ?? []) {
+    if (message.sender_id !== session.adminUserId) {
+      const lastReadAt = lastReadByConversation.get(message.conversation_id);
+      if (!lastReadAt || message.created_at > lastReadAt) {
+        unreadCountByConversation.set(
+          message.conversation_id,
+          (unreadCountByConversation.get(message.conversation_id) ?? 0) + 1
+        );
+      }
+    }
+
+    // Results are newest-first, so the first message seen per
+    // conversation is its most recent one.
+    if (!lastMessageByConversation.has(message.conversation_id)) {
+      lastMessageByConversation.set(message.conversation_id, {
+        body: message.body.length > 140 ? `${message.body.slice(0, 140)}…` : message.body,
+        senderId: message.sender_id,
+      });
     }
   }
 
@@ -82,6 +99,7 @@ export async function GET(request: NextRequest) {
     const otherNames = participantIds
       .filter((id) => id !== session.adminUserId)
       .map((id) => nameById.get(id) ?? "Unknown");
+    const lastMessage = lastMessageByConversation.get(c.id) ?? null;
     return {
       id: c.id,
       type: c.type,
@@ -89,6 +107,8 @@ export async function GET(request: NextRequest) {
       createdAt: c.created_at,
       unreadCount: unreadCountByConversation.get(c.id) ?? 0,
       muted: mutedByConversation.get(c.id) ?? false,
+      lastMessagePreview: lastMessage?.body ?? null,
+      lastMessageIsMine: lastMessage ? lastMessage.senderId === session.adminUserId : false,
     };
   });
 

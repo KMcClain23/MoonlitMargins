@@ -143,6 +143,38 @@ select:focus-visible {
   }
 }
 
+/* Invisible-until-hovered scrollbar for the admin Messages conversation
+   list -- the panel has a fixed height (see MessagesApp.tsx) and scrolls
+   internally, but a permanently-visible scrollbar reads as clutter next
+   to a short list. Firefox has no ::-webkit-scrollbar equivalent, hence
+   the separate scrollbar-color/scrollbar-width rules; both are
+   hover-gated the same way. */
+.conversation-list-scroll {
+  scrollbar-width: none;
+}
+
+.conversation-list-scroll:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 151, 61, 0.35) transparent;
+}
+
+.conversation-list-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversation-list-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 999px;
+}
+
+.conversation-list-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(232, 151, 61, 0.35);
+}
+
+.conversation-list-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
 /* A much quieter variant for sections where body text sits directly on
    top of the starfield (e.g. Events, Join) -- full density looks great
    behind a big display headline, but competes with paragraph text for
