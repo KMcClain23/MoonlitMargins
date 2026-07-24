@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import TaskForm from "@/components/admin/TaskForm";
-import TaskRow from "@/components/admin/TaskRow";
+import TasksBoard from "@/components/admin/TasksBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -50,31 +50,26 @@ export default async function AdminTasksPage() {
         </p>
       )}
 
-      <div className="mt-8 space-y-3">
-        {(tasks ?? []).length === 0 ? (
-          <p className="text-sm text-muted">No tasks yet.</p>
-        ) : (
-          (tasks ?? []).map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              assigneeName={task.assigned_to ? memberNames.get(task.assigned_to) ?? "Unknown" : null}
-              assigneeHasLogin={task.assigned_to ? membersWithLogin.has(task.assigned_to) : false}
-              assignerName={adminUserNames.get(task.assigned_by) ?? "Unknown"}
-              members={members ?? []}
-              currentUser={
-                session
-                  ? {
-                      adminUserId: session.adminUserId,
-                      memberId: session.memberId,
-                      role: session.role,
-                      canAssignTasks: session.canAssignTasks,
-                    }
-                  : null
-              }
-            />
-          ))
-        )}
+      <div className="mt-8">
+        <TasksBoard
+          tasks={(tasks ?? []).map((task) => ({
+            task,
+            assigneeName: task.assigned_to ? memberNames.get(task.assigned_to) ?? "Unknown" : null,
+            assigneeHasLogin: task.assigned_to ? membersWithLogin.has(task.assigned_to) : false,
+            assignerName: adminUserNames.get(task.assigned_by) ?? "Unknown",
+          }))}
+          members={members ?? []}
+          currentUser={
+            session
+              ? {
+                  adminUserId: session.adminUserId,
+                  memberId: session.memberId,
+                  role: session.role,
+                  canAssignTasks: session.canAssignTasks,
+                }
+              : null
+          }
+        />
       </div>
     </div>
   );
