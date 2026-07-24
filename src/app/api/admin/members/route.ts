@@ -17,9 +17,8 @@ const memberSchema = z.object({
   socials: z.record(z.string()).optional(),
 });
 
-// Just id/full_name -- this backs the mobile app's assignment picker, not
-// a full member-profile fetch, so it deliberately skips tier/role/bio/
-// socials/etc.
+// Full member fields -- also backs the mobile app's assignment picker,
+// which only reads id/fullName and simply ignores the rest.
 export async function GET(request: NextRequest) {
   const session = getSessionFromRequest(request);
   if (!session) {
@@ -29,11 +28,23 @@ export async function GET(request: NextRequest) {
   const supabase = supabaseServer();
   const { data: members } = await supabase
     .from("members")
-    .select("id, full_name")
+    .select("id, full_name, role, bio, email, photo_url, photo_zoom, photo_offset_x, photo_offset_y, tier, socials")
     .order("full_name", { ascending: true });
 
   return NextResponse.json({
-    members: (members ?? []).map((m) => ({ id: m.id, fullName: m.full_name })),
+    members: (members ?? []).map((m) => ({
+      id: m.id,
+      fullName: m.full_name,
+      role: m.role,
+      bio: m.bio,
+      email: m.email,
+      photoUrl: m.photo_url,
+      photoZoom: m.photo_zoom,
+      photoOffsetX: m.photo_offset_x,
+      photoOffsetY: m.photo_offset_y,
+      tier: m.tier,
+      socials: m.socials,
+    })),
   });
 }
 

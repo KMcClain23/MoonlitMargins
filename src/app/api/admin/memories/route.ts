@@ -12,6 +12,37 @@ const memorySchema = z.object({
   publishedAt: z.string().optional(),
 });
 
+export async function GET() {
+  const supabase = supabaseServer();
+  const { data: memories } = await supabase
+    .from("memories")
+    .select("id, media_type, image_url, thumbnail_url, title, caption, published_at, created_at")
+    .order("created_at", { ascending: false });
+
+  // Mirrors the effective-date sort both /memories and /admin/memories
+  // apply client-side (published_at when set, otherwise created_at) --
+  // Supabase's query builder can't express a COALESCE-based order-by, so
+  // the sort happens here instead of at the query level.
+  const sorted = [...(memories ?? [])].sort((a, b) => {
+    const aDate = a.published_at ?? a.created_at;
+    const bDate = b.published_at ?? b.created_at;
+    return new Date(bDate).getTime() - new Date(aDate).getTime();
+  });
+
+  return NextResponse.json({
+    memories: sorted.map((m) => ({
+      id: m.id,
+      mediaType: m.media_type,
+      imageUrl: m.image_url,
+      thumbnailUrl: m.thumbnail_url,
+      title: m.title,
+      caption: m.caption,
+      publishedAt: m.published_at,
+      createdAt: m.created_at,
+    })),
+  });
+}
+
 export async function POST(request: NextRequest) {
   const parsed = memorySchema.safeParse(await request.json());
   if (!parsed.success) {
