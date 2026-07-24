@@ -100,6 +100,58 @@ export async function getOrCreateTaskConversation(supabase: SupabaseClient, task
 }
 
 /**
+ * Sends an Expo push notification to whichever of these admin_users have a
+ * registered push token. Best-effort and self-contained -- swallows every
+ * failure internally (a missing/unreachable Expo endpoint, or simply no
+ * registered devices, must never block whatever real action triggered the
+ * notification), so callers don't need their own try/catch around this.
+ */
+export async function sendExpoPushToAdminUsers(
+  supabase: SupabaseClient,
+  adminUserIds: string[],
+  notification: { title: string; body: string; data?: Record<string, unknown> }
+): Promise<void> {
+  if (adminUserIds.length === 0) return;
+
+  try {
+    const { data: pushTokenRows } = await supabase
+      .from("admin_push_tokens")
+      .select("expo_push_token, preferred_channel_id")
+      .in("admin_user_id", adminUserIds);
+
+    const tokens = pushTokenRows ?? [];
+    if (tokens.length === 0) return;
+
+    console.log("Sending Expo push notification", { tokenCount: tokens.length, recipientIds: adminUserIds });
+
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        tokens.map((row) => ({
+          to: row.expo_push_token as string,
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+          // Android-only -- picks which pre-created notification channel
+          // (sound/vibration) the device displays this under. iOS ignores it.
+          channelId: row.preferred_channel_id as string,
+        }))
+      ),
+    });
+
+    // A 200 alone doesn't mean delivery succeeded -- Expo's push API
+    // returns a body with a per-token receipt/error (e.g.
+    // DeviceNotRegistered, InvalidCredentials) even on a "successful"
+    // request, so the full body is logged here, not just the status.
+    const responseBody = await response.json();
+    console.log("Expo push send response", response.status, responseBody);
+  } catch (err) {
+    console.error("Expo push send threw", err);
+  }
+}
+
+/**
  * Inserts a message and emails every other participant (best-effort --
  * a failed email never blocks the message itself from sending).
  */
@@ -162,58 +214,18 @@ export async function sendMessageAndNotify(
     )
   );
 
-  // Best-effort push notification too -- same "never block the message"
-  // rule as the email above. A missing/unreachable Expo push endpoint (or
-  // simply no registered devices) must not affect message delivery.
-  try {
-    // Muted participants still get the message (it's inserted above,
-    // unconditionally) and it still counts toward their unread total --
-    // muting only suppresses the push notification itself.
-    const mutedIds = new Set((participants ?? []).filter((p) => p.muted).map((p) => p.admin_user_id));
-    const pushRecipientIds = recipientIds.filter((recipientId) => !mutedIds.has(recipientId));
+  // Muted participants still get the message (it's inserted above,
+  // unconditionally) and it still counts toward their unread total --
+  // muting only suppresses the push notification itself.
+  const mutedIds = new Set((participants ?? []).filter((p) => p.muted).map((p) => p.admin_user_id));
+  const pushRecipientIds = recipientIds.filter((recipientId) => !mutedIds.has(recipientId));
+  const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
 
-    if (pushRecipientIds.length === 0) return;
-
-    const { data: pushTokenRows } = await supabase
-      .from("admin_push_tokens")
-      .select("expo_push_token, preferred_channel_id")
-      .in("admin_user_id", pushRecipientIds);
-
-    const tokens = pushTokenRows ?? [];
-
-    if (tokens.length > 0) {
-      const truncatedBody = body.length > 100 ? `${body.slice(0, 100)}…` : body;
-
-      console.log("Sending Expo push notification", { tokenCount: tokens.length, recipientIds: pushRecipientIds });
-
-      const response = await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          tokens.map((row) => ({
-            to: row.expo_push_token as string,
-            title: sender.full_name as string,
-            body: truncatedBody,
-            data: { conversationId },
-            // Android-only -- picks which pre-created notification channel
-            // (sound/vibration) the device displays this under. iOS ignores it.
-            channelId: row.preferred_channel_id as string,
-          }))
-        ),
-      });
-
-      // A 200 alone doesn't mean delivery succeeded -- Expo's push API
-      // returns a body with a per-token receipt/error (e.g.
-      // DeviceNotRegistered, InvalidCredentials) even on a "successful"
-      // request, so the full body is logged here, not just the status.
-      const responseBody = await response.json();
-      console.log("Expo push send response", response.status, responseBody);
-    }
-  } catch (err) {
-    // Never let a notification failure affect the already-sent message --
-    // just log it for diagnostics.
-    console.error("Expo push send threw", err);
-  }
+  await sendExpoPushToAdminUsers(supabase, pushRecipientIds, {
+    title: sender.full_name as string,
+    body: truncatedBody,
+    data: { conversationId },
+  });
 }
 
 /**
