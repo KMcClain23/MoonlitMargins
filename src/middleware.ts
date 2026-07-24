@@ -52,12 +52,21 @@ export function middleware(request: NextRequest) {
   // requireOwner() check.
   const isUsersListRequest = pathname === "/api/admin/users" && request.method === "GET";
 
+  // PATCH /api/admin/members/me/photo lets anyone with a linked member
+  // profile update their own photo, regardless of "members" section
+  // access -- that section is about managing the whole roster, a
+  // different concern from editing your own picture. The route itself
+  // further narrows this to session.memberId's own row and only its
+  // photo_* columns, so bypassing the section gate here doesn't grant
+  // anything beyond that.
+  const isOwnPhotoUpdateRequest = pathname === "/api/admin/members/me/photo" && request.method === "PATCH";
+
   // Section-level access control: being logged in isn't enough on its own --
   // a role (or a member's specific allowed_sections override) can still
   // block a given admin area, e.g. an "editor" reaching /admin/users.
   if (session) {
     const section = sectionForPath(pathname);
-    if (section && !isUsersListRequest && !session.sections.includes(section)) {
+    if (section && !isUsersListRequest && !isOwnPhotoUpdateRequest && !session.sections.includes(section)) {
       if (isAdminApi) {
         return NextResponse.json({ error: "Not authorized for this section" }, { status: 403 });
       }
