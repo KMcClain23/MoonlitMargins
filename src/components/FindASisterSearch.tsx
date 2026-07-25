@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { LinkButton, SubmitButton } from "@/components/Button";
 import MemberAvatarImage from "@/components/MemberAvatarImage";
 
@@ -43,25 +43,58 @@ type NearbyMember = {
   photoZoom: number;
   photoOffsetX: number;
   photoOffsetY: number;
-  state: string | null;
+  // Present depending on which search mode produced this result --
+  // GET /api/directory/nearby returns `state` for ?state= searches,
+  // `country` for ?country= ones, never both.
+  state?: string | null;
+  country?: string | null;
 };
 
+type Mode = "state" | "country";
+
 export default function FindASisterSearch() {
+  const [mode, setMode] = useState<Mode>("state");
   const [selectedState, setSelectedState] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [countries, setCountries] = useState<string[]>([]);
   // null = hasn't searched yet, [] = searched, genuinely no results.
   const [results, setResults] = useState<NearbyMember[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Only real options -- countries that actually have members -- rather
+  // than a static guessed list. Fetched once up front so the dropdown is
+  // already populated the moment someone switches to "By Country".
+  useEffect(() => {
+    fetch("/api/directory/countries")
+      .then((res) => (res.ok ? (res.json() as Promise<string[]>) : []))
+      .then(setCountries)
+      .catch(() => {
+        // Purely decorative on failure -- the dropdown just stays empty
+        // rather than blocking the rest of the page.
+      });
+  }, []);
+
+  // Switching modes clears any previous search -- a state-search result
+  // grid showing while "By Country" is selected (or vice versa) would
+  // read as if that result came from the wrong kind of search.
+  function handleModeChange(next: Mode) {
+    setMode(next);
+    setResults(null);
+    setErrorMessage("");
+  }
+
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedState) return;
+    const value = mode === "state" ? selectedState : selectedCountry;
+    if (!value) return;
 
     setStatus("loading");
     setErrorMessage("");
 
     try {
-      const res = await fetch(`/api/directory/nearby?state=${selectedState}`);
+      const param = mode === "state" ? `state=${encodeURIComponent(value)}` : `country=${encodeURIComponent(value)}`;
+      const res = await fetch(`/api/directory/nearby?${param}`);
       if (!res.ok) {
         setStatus("error");
         setErrorMessage("That didn't go through. Try again.");
@@ -78,26 +111,73 @@ export default function FindASisterSearch() {
 
   return (
     <div>
+      <div className="mb-6 flex gap-2">
+        <button
+          type="button"
+          onClick={() => handleModeChange("state")}
+          className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
+            mode === "state"
+              ? "border-lilac bg-lilac text-ink"
+              : "border-muted/40 text-muted hover:border-parchment hover:text-parchment"
+          }`}
+        >
+          Search by US State
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeChange("country")}
+          className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
+            mode === "country"
+              ? "border-lilac bg-lilac text-ink"
+              : "border-muted/40 text-muted hover:border-parchment hover:text-parchment"
+          }`}
+        >
+          Search by Country
+        </button>
+      </div>
+
       <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <label className="block flex-1">
-          <span className="mb-2 block text-sm text-muted">Your state</span>
-          <select
-            value={selectedState}
-            onChange={(e) => setSelectedState(e.target.value)}
-            required
-            className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac"
-          >
-            <option value="" disabled>
-              Choose your state
-            </option>
-            {US_STATES.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.name}
+        {mode === "state" ? (
+          <label className="block flex-1">
+            <span className="mb-2 block text-sm text-muted">Your state</span>
+            <select
+              value={selectedState}
+              onChange={(e) => setSelectedState(e.target.value)}
+              required
+              className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac"
+            >
+              <option value="" disabled>
+                Choose your state
               </option>
-            ))}
-          </select>
-        </label>
-        <SubmitButton disabled={!selectedState || status === "loading"}>
+              {US_STATES.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label className="block flex-1">
+            <span className="mb-2 block text-sm text-muted">Your country</span>
+            <select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              required
+              disabled={countries.length === 0}
+              className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-parchment focus:border-lilac disabled:opacity-50"
+            >
+              <option value="" disabled>
+                {countries.length === 0 ? "No countries available yet" : "Choose your country"}
+              </option>
+              {countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <SubmitButton disabled={(mode === "state" ? !selectedState : !selectedCountry) || status === "loading"}>
           {status === "loading" ? "Searching…" : "Search"}
         </SubmitButton>
       </form>
