@@ -18,6 +18,34 @@ function formatDisplayName(fullName: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const supabase = supabaseServer();
+
+  const rawCountry = request.nextUrl.searchParams.get("country");
+  const country = rawCountry?.trim() ?? "";
+
+  // Country path: exact match (case-insensitive) against members.country,
+  // no adjacency concept -- entirely separate from, and doesn't disturb,
+  // the state-based path below. `country` in the result in place of
+  // `state`, since state isn't meaningful here.
+  if (country) {
+    const { data: members } = await supabase
+      .from("members")
+      .select("full_name, photo_url, photo_zoom, photo_offset_x, photo_offset_y, country")
+      .ilike("country", country)
+      .eq("hide_from_directory", false);
+
+    const results = (members ?? []).map((m) => ({
+      displayName: formatDisplayName(m.full_name),
+      photoUrl: m.photo_url,
+      photoZoom: m.photo_zoom,
+      photoOffsetX: m.photo_offset_x,
+      photoOffsetY: m.photo_offset_y,
+      country: m.country,
+    }));
+
+    return NextResponse.json(results);
+  }
+
   const rawState = request.nextUrl.searchParams.get("state");
   const state = rawState?.trim().toUpperCase() ?? "";
 
@@ -27,7 +55,6 @@ export async function GET(request: NextRequest) {
 
   const searchStates = [state, ...STATE_NEIGHBORS[state]!];
 
-  const supabase = supabaseServer();
   // .in() never matches a null state on its own, so this already
   // satisfies "state is not null" without a separate filter.
   const { data: members } = await supabase

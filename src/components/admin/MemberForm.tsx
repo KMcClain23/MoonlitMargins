@@ -20,7 +20,15 @@ type MemberValues = {
   tier?: "founder" | "council" | "junior_council" | "member";
   hide_from_directory?: boolean | null;
   state?: string | null;
+  country?: string | null;
 };
+
+// Short, maintainable list rather than a full ~195-country roster --
+// "Other" reveals a free-text input for anything not listed. Country
+// names are stored as-is (matches GET /api/directory/countries reading
+// distinct values straight off members.country), so whatever's typed
+// into "Other" becomes the canonical value for that member.
+const COMMON_COUNTRIES = ["United States", "Canada", "United Kingdom", "Australia", "New Zealand", "Ireland"];
 
 // 2-letter code -> display name, sorted alphabetically by name for the
 // dropdown below. Matches the same 50 states + DC set as
@@ -81,6 +89,19 @@ export default function MemberForm({
   const [photoOffsetY, setPhotoOffsetY] = useState(member?.photo_offset_y ?? 0);
   const [hideFromDirectory, setHideFromDirectory] = useState(member?.hide_from_directory ?? false);
 
+  // Splits the stored country into "which preset (if any)" + "the actual
+  // free-text value when it's not one of the presets" -- lets the select
+  // start on "Other" already showing the real value instead of silently
+  // snapping an unlisted country back to "United States".
+  const initialCountry = member?.country ?? "United States";
+  const isPresetCountry = COMMON_COUNTRIES.includes(initialCountry);
+  const [countrySelection, setCountrySelection] = useState(isPresetCountry ? initialCountry : "Other");
+  const [customCountry, setCustomCountry] = useState(isPresetCountry ? "" : initialCountry);
+  const effectiveCountry = countrySelection === "Other" ? customCountry.trim() : countrySelection;
+  // State is only meaningful for US members -- this feature's whole
+  // reason for existing (see stateAdjacency.ts) is US-neighbor search.
+  const isUnitedStates = effectiveCountry === "United States";
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -106,7 +127,8 @@ export default function MemberForm({
       socials,
       tier: String(formData.get("tier") ?? "member"),
       hideFromDirectory,
-      state: String(formData.get("state") ?? ""),
+      state: isUnitedStates ? String(formData.get("state") ?? "") : "",
+      country: effectiveCountry,
     };
 
     const url = isEditing ? `/api/admin/members/${member!.id}` : "/api/admin/members";
@@ -133,6 +155,8 @@ export default function MemberForm({
       setPhotoOffsetX(0);
       setPhotoOffsetY(0);
       setHideFromDirectory(false);
+      setCountrySelection("United States");
+      setCustomCountry("");
     }
     router.refresh();
     onDone?.();
@@ -202,22 +226,48 @@ export default function MemberForm({
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-xs text-muted">
-            State <span className="text-muted/70">(optional -- used by the public directory)</span>
-          </span>
+          <span className="mb-1.5 block text-xs text-muted">Country</span>
           <select
-            name="state"
-            defaultValue={member?.state ?? ""}
+            value={countrySelection}
+            onChange={(e) => setCountrySelection(e.target.value)}
             className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
           >
-            <option value="">Not set</option>
-            {US_STATES.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.name}
+            {COMMON_COUNTRIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
               </option>
             ))}
+            <option value="Other">Other</option>
           </select>
+          {countrySelection === "Other" ? (
+            <input
+              value={customCountry}
+              onChange={(e) => setCustomCountry(e.target.value)}
+              placeholder="Country name"
+              className="mt-1.5 w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
+            />
+          ) : null}
         </label>
+
+        {isUnitedStates ? (
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-muted">
+              State <span className="text-muted/70">(optional -- used by the public directory)</span>
+            </span>
+            <select
+              name="state"
+              defaultValue={member?.state ?? ""}
+              className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
+            >
+              <option value="">Not set</option>
+              {US_STATES.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <div className="sm:col-span-2 grid gap-3 sm:grid-cols-[auto_1fr]">
           <div>

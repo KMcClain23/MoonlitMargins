@@ -16,6 +16,7 @@ const memberSchema = z.object({
   socials: z.record(z.string()).optional(),
   hideFromDirectory: z.boolean().optional(),
   state: z.string().optional(),
+  country: z.string().optional(),
 });
 
 export async function DELETE(
@@ -44,7 +45,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory, state } =
+  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory, state, country } =
     parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase
@@ -63,6 +64,7 @@ export async function PATCH(
       socials: socials ?? {},
       hide_from_directory: hideFromDirectory ?? false,
       state: state || null,
+      country: country || "United States",
     })
     .eq("id", id);
 

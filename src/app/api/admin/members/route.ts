@@ -17,6 +17,7 @@ const memberSchema = z.object({
   socials: z.record(z.string()).optional(),
   hideFromDirectory: z.boolean().optional(),
   state: z.string().optional(),
+  country: z.string().optional(),
 });
 
 // Full member fields -- also backs the mobile app's assignment picker,
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
   const { data: members } = await supabase
     .from("members")
     .select(
-      "id, full_name, role, bio, email, photo_url, photo_zoom, photo_offset_x, photo_offset_y, tier, socials, hide_from_directory, state"
+      "id, full_name, role, bio, email, photo_url, photo_zoom, photo_offset_x, photo_offset_y, tier, socials, hide_from_directory, state, country"
     )
     .order("full_name", { ascending: true });
 
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
       socials: m.socials,
       hideFromDirectory: m.hide_from_directory,
       state: m.state,
+      country: m.country,
     })),
   });
 }
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory, state } =
+  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory, state, country } =
     parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase.from("members").insert({
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
     socials: socials ?? {},
     hide_from_directory: hideFromDirectory ?? false,
     state: state || null,
+    country: country || "United States",
   });
 
   if (error) {
