@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/planner-sync",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/planner-notifications",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
