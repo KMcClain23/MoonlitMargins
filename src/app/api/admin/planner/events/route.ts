@@ -3,6 +3,7 @@ import { z } from "zod";
 import { rrulestr } from "rrule";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getSessionFromRequest } from "@/lib/adminAuth";
+import { createGoogleCalendarEvent } from "@/lib/googleCalendar";
 
 // Section-level access (session.sections.includes("planner"), 403
 // otherwise) is enforced by middleware.ts, the same way it already is for
@@ -157,14 +158,34 @@ export async function POST(request: NextRequest) {
       is_private: isPrivate ?? false,
       recurrence_rule: recurrenceRule || null,
       notification_lead_minutes: notificationLeadMinutes ?? 30,
-      // google_event_id intentionally left null -- Google Calendar sync
-      // is Phase 2, not implemented here.
+      // google_event_id starts null -- set below once/if the Google
+      // Calendar create call below actually succeeds.
     })
     .select("id")
     .single();
 
   if (error || !created) {
     return NextResponse.json({ error: "Could not create event" }, { status: 500 });
+  }
+
+  // Best-effort, same "never block the local operation" rule as every
+  // other push-notification-style side effect in this app -- the event
+  // is already saved and this response is already a success either way.
+  try {
+    const googleEventId = await createGoogleCalendarEvent({
+      title,
+      description: description || null,
+      location: location || null,
+      startTime,
+      endTime,
+      allDay: allDay ?? false,
+      recurrenceRule: recurrenceRule || null,
+    });
+    if (googleEventId) {
+      await supabase.from("planner_events").update({ google_event_id: googleEventId }).eq("id", created.id);
+    }
+  } catch (err) {
+    console.error("[planner] Google Calendar create sync threw:", err);
   }
 
   return NextResponse.json({ success: true, id: created.id });

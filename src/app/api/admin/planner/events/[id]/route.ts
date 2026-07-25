@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getSessionFromRequest } from "@/lib/adminAuth";
+import { deleteGoogleCalendarEvent, updateGoogleCalendarEvent } from "@/lib/googleCalendar";
 
 // Section-level access (session.sections.includes("planner")) is enforced
 // by middleware.ts, same as GET/POST /api/admin/planner/events -- what's
@@ -25,14 +26,21 @@ async function requireCreatorOrOwner(
   id: string,
   session: { adminUserId: string; role: string }
 ) {
-  const { data: existing } = await supabase.from("planner_events").select("created_by").eq("id", id).maybeSingle();
+  const { data: existing } = await supabase
+    .from("planner_events")
+    .select("created_by, google_event_id")
+    .eq("id", id)
+    .maybeSingle();
   if (!existing) {
-    return { error: NextResponse.json({ error: "Event not found" }, { status: 404 }) };
+    return { error: NextResponse.json({ error: "Event not found" }, { status: 404 }), googleEventId: null };
   }
   if (existing.created_by !== session.adminUserId && session.role !== "owner") {
-    return { error: NextResponse.json({ error: "Only the creator or an owner can do that" }, { status: 403 }) };
+    return {
+      error: NextResponse.json({ error: "Only the creator or an owner can do that" }, { status: 403 }),
+      googleEventId: null,
+    };
   }
-  return { error: null };
+  return { error: null, googleEventId: existing.google_event_id as string | null };
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -44,7 +52,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params;
   const supabase = supabaseServer();
 
-  const { error: permissionError } = await requireCreatorOrOwner(supabase, id, session);
+  const { error: permissionError, googleEventId } = await requireCreatorOrOwner(supabase, id, session);
   if (permissionError) return permissionError;
 
   const parsed = updateSchema.safeParse(await request.json());
@@ -83,6 +91,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Could not update event" }, { status: 500 });
   }
 
+  // Best-effort, same "never block the local operation" rule as
+  // POST's create sync -- the row is already updated and this response
+  // is already a success either way. Nothing to push if this event was
+  // never linked to Google in the first place (googleEventId null --
+  // e.g. the original create sync failed or Calendar wasn't configured
+  // yet at the time).
+  if (googleEventId) {
+    try {
+      await updateGoogleCalendarEvent(googleEventId, {
+        title,
+        description: description || null,
+        location: location || null,
+        startTime,
+        endTime,
+        allDay: allDay ?? false,
+        recurrenceRule: recurrenceRule || null,
+      });
+    } catch (err) {
+      console.error("[planner] Google Calendar update sync threw:", err);
+    }
+  }
+
   return NextResponse.json({ success: true });
 }
 
@@ -95,7 +125,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   const supabase = supabaseServer();
 
-  const { error: permissionError } = await requireCreatorOrOwner(supabase, id, session);
+  const { error: permissionError, googleEventId } = await requireCreatorOrOwner(supabase, id, session);
   if (permissionError) return permissionError;
 
   // Deletes the whole series. planner_event_notifications_sent rows for
@@ -105,6 +135,19 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   if (error) {
     return NextResponse.json({ error: "Could not delete event" }, { status: 500 });
+  }
+
+  // Best-effort, same "never block the local operation" rule as
+  // everywhere else this syncs -- the row is already gone locally and
+  // this response is already a success either way. Captured
+  // googleEventId above, before the delete, since it can't be looked up
+  // from the row anymore afterward.
+  if (googleEventId) {
+    try {
+      await deleteGoogleCalendarEvent(googleEventId);
+    } catch (err) {
+      console.error("[planner] Google Calendar delete sync threw:", err);
+    }
   }
 
   return NextResponse.json({ success: true });
