@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const supabase = supabaseServer();
 
-  const { data: row } = await supabase
+  const { data: row, error } = await supabase
     .from("planner_events")
     .select(
       "id, created_by, title, description, location, start_time, end_time, all_day, is_private, recurrence_rule, notification_lead_minutes, synced_from_google"
@@ -45,6 +45,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .eq("id", id)
     .maybeSingle();
 
+  // A genuine query failure (e.g. a missing column) was previously
+  // indistinguishable from "no such row" -- both left `row` unset and
+  // returned the same 404, which reads as "this event doesn't exist"
+  // when the real problem is the query itself couldn't run. See the list
+  // GET route's matching comment for the concrete case this caught.
+  if (error) {
+    console.error("[planner] Failed to fetch planner event:", error);
+    return NextResponse.json({ error: "Could not load that event" }, { status: 500 });
+  }
   if (!row) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }

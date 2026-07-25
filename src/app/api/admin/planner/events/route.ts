@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   // Non-recurring events can be range-filtered directly in SQL. Recurring
   // ones can't -- their occurrences aren't stored as rows -- so those are
   // fetched in full here and expanded via rrule below instead.
-  const [{ data: singleEvents }, { data: recurringEvents }, { data: adminUsers }] = await Promise.all([
+  const [singleResult, recurringResult, adminUsersResult] = await Promise.all([
     supabase
       .from("planner_events")
       .select(EVENT_COLUMNS)
@@ -74,7 +74,29 @@ export async function GET(request: NextRequest) {
     supabase.from("admin_users").select("id, full_name"),
   ]);
 
-  const nameById = new Map((adminUsers ?? []).map((u) => [u.id, u.full_name]));
+  // A failed query here (e.g. a schema mismatch -- a column EVENT_COLUMNS
+  // references that a pending migration hasn't actually added to this
+  // database yet) previously fell through silently: `data` comes back
+  // null, `?? []` turned that into "zero events," and the route still
+  // returned 200. Every event vanished from every view with no error
+  // anywhere -- exactly indistinguishable from "there are just no events
+  // in range." Surfacing the error here instead means a schema drift like
+  // that fails loudly (500, logged, and shown in the UI via PlannerBoard's
+  // existing !res.ok handling) instead of silently.
+  const { data: singleEvents, error: singleError } = singleResult;
+  const { data: recurringEvents, error: recurringError } = recurringResult;
+  if (singleError || recurringError) {
+    console.error("[planner] Failed to fetch planner events:", singleError ?? recurringError);
+    return NextResponse.json({ error: "Could not load planner events" }, { status: 500 });
+  }
+
+  // Names are a display nicety (falls back to "Unknown" below) -- not
+  // worth failing the whole request over, so this one's errors are just
+  // logged rather than turned into a 500 like the two above.
+  if (adminUsersResult.error) {
+    console.error("[planner] Failed to fetch admin_users for name lookup:", adminUsersResult.error);
+  }
+  const nameById = new Map((adminUsersResult.data ?? []).map((u) => [u.id, u.full_name]));
   // Captured as a plain string so the nested functions below don't lose
   // TypeScript's null-narrowing on `session` (control-flow narrowing
   // doesn't cross function boundaries for closed-over variables).
