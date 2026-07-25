@@ -1,4 +1,4 @@
-export type AdminSection = "applications" | "events" | "members" | "memories" | "tasks" | "users";
+export type AdminSection = "applications" | "events" | "members" | "memories" | "tasks" | "users" | "planner";
 export type AdminRole = "owner" | "admin" | "editor";
 
 export const ALL_SECTIONS: AdminSection[] = [
@@ -8,6 +8,7 @@ export const ALL_SECTIONS: AdminSection[] = [
   "memories",
   "tasks",
   "users",
+  "planner",
 ];
 
 export const SECTION_LABELS: Record<AdminSection, string> = {
@@ -17,6 +18,7 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   memories: "Memories",
   tasks: "Tasks",
   users: "Users",
+  planner: "Planner",
 };
 
 // What each role can see by default. A member's allowed_sections column
@@ -24,6 +26,12 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
 // cases where someone needs a custom set that doesn't match any role's
 // defaults, e.g. an editor who should ALSO see Applications but nothing
 // else new.
+//
+// "planner" is deliberately absent from every role here, including owner --
+// unlike every other section, it's never granted automatically to anyone.
+// It's an internal scheduling tool for a small subset of admins, granted
+// per-admin_user via the Users management UI's allowed_sections override,
+// the same mechanism editor-plus-Applications uses above.
 export const ROLE_DEFAULT_SECTIONS: Record<AdminRole, AdminSection[]> = {
   owner: ["applications", "events", "members", "memories", "tasks", "users"],
   admin: ["applications", "events", "members", "memories", "tasks"],
