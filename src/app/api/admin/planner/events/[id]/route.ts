@@ -21,6 +21,55 @@ const updateSchema = z.object({
   notificationLeadMinutes: z.number().int().min(0).optional(),
 });
 
+// GET wasn't part of the original Phase 1 scope (only the range-based
+// list GET existed), but the web edit form needs it: a recurring
+// event's occurrence pills carry that OCCURRENCE's own shifted start/end
+// time, not the series' true stored start_time/end_time (its DTSTART
+// anchor). Pre-filling the edit form from an arbitrary clicked
+// occurrence instead of this would silently move the whole series'
+// anchor to wherever that occurrence happened to fall.
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const supabase = supabaseServer();
+
+  const { data: row } = await supabase
+    .from("planner_events")
+    .select(
+      "id, created_by, title, description, location, start_time, end_time, all_day, is_private, recurrence_rule, notification_lead_minutes, synced_from_google"
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!row) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+  // Same visibility rule as the list GET -- a private event is only
+  // visible to whoever created it.
+  if (row.is_private && row.created_by !== session.adminUserId) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    location: row.location,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    allDay: row.all_day,
+    isPrivate: row.is_private,
+    createdBy: row.created_by,
+    recurrenceRule: row.recurrence_rule,
+    notificationLeadMinutes: row.notification_lead_minutes,
+    syncedFromGoogle: row.synced_from_google,
+  });
+}
+
 async function requireCreatorOrOwner(
   supabase: ReturnType<typeof supabaseServer>,
   id: string,

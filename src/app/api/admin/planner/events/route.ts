@@ -23,7 +23,7 @@ const createSchema = z.object({
 });
 
 const EVENT_COLUMNS =
-  "id, created_by, title, description, location, start_time, end_time, all_day, is_private, recurrence_rule, notification_lead_minutes";
+  "id, created_by, title, description, location, start_time, end_time, all_day, is_private, recurrence_rule, notification_lead_minutes, synced_from_google";
 
 type PlannerEventRow = {
   id: string;
@@ -37,6 +37,7 @@ type PlannerEventRow = {
   is_private: boolean;
   recurrence_rule: string | null;
   notification_lead_minutes: number;
+  synced_from_google: boolean;
 };
 
 export async function GET(request: NextRequest) {
@@ -93,6 +94,7 @@ export async function GET(request: NextRequest) {
       createdByName: nameById.get(row.created_by) ?? "Unknown",
       recurrenceRule: row.recurrence_rule,
       notificationLeadMinutes: row.notification_lead_minutes,
+      syncedFromGoogle: row.synced_from_google,
     };
   }
 
