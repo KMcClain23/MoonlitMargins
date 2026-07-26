@@ -1,8 +1,34 @@
+import type { Metadata } from "next";
 import Chapter from "@/components/Chapter";
 import EventsView from "@/components/EventsView";
 import { supabaseServer } from "@/lib/supabase/server";
+import { DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 300;
+
+const TITLE = "Upcoming Book Club Events & Meetups";
+const DESCRIPTION =
+  "See upcoming reading sprints, TikTok lives, author events, and the annual sisterhood meetup — all the ways to show up with The Moonlit Margins Sisterhood.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/events" },
+  openGraph: {
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    url: absoluteUrl("/events"),
+    siteName: SITE_NAME,
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
+  },
+};
 
 async function getAllEvents() {
   const supabase = supabaseServer();

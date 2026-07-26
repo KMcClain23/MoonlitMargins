@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import EventRsvpSection from "@/components/EventRsvpSection";
 import ShareRow from "@/components/ShareRow";
+import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 300;
 
@@ -27,13 +29,50 @@ async function getEvent(slug: string) {
   return data;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+// Real event copy when there is any; otherwise a genuinely specific
+// fallback built from this event's own type/date rather than one generic
+// line reused for every event that happens to lack a description.
+function eventDescription(event: NonNullable<Awaited<ReturnType<typeof getEvent>>>): string {
+  if (event.description) {
+    return event.description.length > 160 ? `${event.description.slice(0, 157)}...` : event.description;
+  }
+  const typeLabel = TYPE_LABELS[event.event_type] ?? "Event";
+  const when = new Date(event.starts_at).toLocaleDateString("en-US", { dateStyle: "medium" });
+  return `${typeLabel} with The Moonlit Margins Sisterhood — ${when}${event.location ? ` in ${event.location}` : ""}.`;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEvent(slug);
-  if (!event) return { title: "Event | The Moonlit Margins Sisterhood" };
+  if (!event) {
+    return { title: "Event Not Found" };
+  }
+
+  const description = eventDescription(event);
+  const url = absoluteUrl(`/events/${slug}`);
+  const image = event.cover_image_url ? { url: event.cover_image_url, alt: `${event.title} event photo` } : DEFAULT_OG_IMAGE;
+
   return {
-    title: `${event.title} | The Moonlit Margins Sisterhood`,
-    description: event.description ?? undefined,
+    title: event.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: `${event.title} | ${SITE_NAME}`,
+      description,
+      url,
+      siteName: SITE_NAME,
+      // "article" -- an individual event page reads as a piece of content
+      // about one specific happening, same reasoning Open Graph's own docs
+      // give for using article over website on non-homepage content pages.
+      type: "article",
+      images: [image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${event.title} | ${SITE_NAME}`,
+      description,
+      images: [image.url],
+    },
   };
 }
 
@@ -49,8 +88,33 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       ).toLocaleTimeString("en-US", { timeStyle: "short" })}`
     : new Date(event.starts_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 
+  // location is free-text and optional -- this model treats "no location
+  // set" as implicitly virtual (see the " · Virtual" fallback rendered
+  // below), so that's the same signal used here for VirtualLocation vs.
+  // Place and the matching eventAttendanceMode.
+  const isVirtual = !event.location;
+  const eventJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: event.title,
+    startDate: event.starts_at,
+    ...(event.ends_at ? { endDate: event.ends_at } : {}),
+    eventStatus: event.status === "canceled" ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
+    eventAttendanceMode: isVirtual
+      ? "https://schema.org/OnlineEventAttendanceMode"
+      : "https://schema.org/OfflineEventAttendanceMode",
+    location: isVirtual
+      ? { "@type": "VirtualLocation", url: event.link_url ?? absoluteUrl(`/events/${slug}`) }
+      : { "@type": "Place", name: event.location },
+    description: eventDescription(event),
+    ...(event.cover_image_url ? { image: [event.cover_image_url] } : {}),
+    organizer: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+  };
+
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
+
       <Link href="/events" className="text-sm text-muted underline decoration-hairline underline-offset-2 hover:text-lilac-soft">
         ← Back to events
       </Link>
@@ -86,7 +150,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
       {event.cover_image_url ? (
         <div className="relative mt-12 aspect-video w-full overflow-hidden rounded-2xl border border-hairline bg-surfaceRaised">
-          <Image src={event.cover_image_url} alt="" fill sizes="(min-width: 768px) 768px, 100vw" className="object-cover" />
+          <Image
+            src={event.cover_image_url}
+            alt={`${event.title} event photo`}
+            fill
+            sizes="(min-width: 768px) 768px, 100vw"
+            className="object-cover"
+          />
         </div>
       ) : null}
 

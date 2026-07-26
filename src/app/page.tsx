@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { LinkButton } from "@/components/Button";
 import Chapter from "@/components/Chapter";
 import MarginNote from "@/components/MarginNote";
@@ -6,6 +7,44 @@ import BookStackMotif from "@/components/icons/BookStackMotif";
 import SocialLinks from "@/components/SocialLinks";
 import Parallax from "@/components/Parallax";
 import { APPLICATIONS_REOPEN_AT } from "@/lib/countdownTarget";
+import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_NAME, SITE_URL, SOCIAL_URLS } from "@/lib/seo";
+
+const TITLE = "Virtual Book Club & Reading Community for Women";
+const DESCRIPTION =
+  "More than a book club — The Moonlit Margins Sisterhood connects women readers nationwide through monthly reads, discussions, author events, and an annual meetup.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
+  },
+};
+
+// Organization schema -- sameAs lists the actual social profiles Footer.tsx
+// links to (kept in sync via the shared SOCIAL_URLS constant, not
+// retyped here), so search engines can associate this site with those
+// existing, already-established profiles.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: absoluteUrl("/brand/moon-flame-emblem.png"),
+  sameAs: SOCIAL_URLS,
+};
 
 const INTERVIEWS_BEGIN = new Date(APPLICATIONS_REOPEN_AT).toLocaleDateString("en-US", {
   month: "long",
@@ -43,6 +82,11 @@ const PERKS = [
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+
       {/* Hero -- each section below is `sticky top-0` with an increasing
           z-index (kept well under the header's z-50), so as you keep
           scrolling, the next section slides up and covers the one before

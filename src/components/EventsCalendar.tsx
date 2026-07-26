@@ -204,7 +204,13 @@ export default function EventsCalendar({ events }: { events: EventRow[] }) {
                 >
                   {event.cover_image_url ? (
                     <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded-lg bg-ink">
-                      <Image src={event.cover_image_url} alt="" fill sizes="64px" className="object-cover" />
+                      <Image
+                        src={event.cover_image_url}
+                        alt={`${event.title} event photo`}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
                     </div>
                   ) : null}
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { Play } from "lucide-react";
 import Chapter from "@/components/Chapter";
@@ -10,8 +11,33 @@ import {
   resolveVideoDescription,
   resolveVideoPublishedAt,
 } from "@/lib/videoEmbed";
+import { DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
+
+const TITLE = "Memories From Meetups & Reading Sprints";
+const DESCRIPTION =
+  "Photos and videos from The Moonlit Margins Sisterhood's meetups, reading sprints, and events — a look back at moments shared across the whole community.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/memories" },
+  openGraph: {
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    url: absoluteUrl("/memories"),
+    siteName: SITE_NAME,
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
+  },
+};
 
 type Memory = {
   id: string;

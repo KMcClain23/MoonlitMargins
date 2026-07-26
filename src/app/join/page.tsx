@@ -1,9 +1,35 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import ApplicationForm, { FormField } from "@/components/ApplicationForm";
 import Chapter from "@/components/Chapter";
 import Countdown from "@/components/Countdown";
 import WavyFrame from "@/components/WavyFrame";
 import { APPLICATIONS_REOPEN_AT } from "@/lib/countdownTarget";
+import { DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/lib/seo";
+
+const TITLE = "Apply to Join the Sisterhood";
+const DESCRIPTION =
+  "Apply to join The Moonlit Margins Sisterhood: monthly reads, a welcome swag box, ARC/ALC access, author interviews, and yearly meetups with fellow readers.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/join" },
+  openGraph: {
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    url: absoluteUrl("/join"),
+    siteName: SITE_NAME,
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
+  },
+};
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",

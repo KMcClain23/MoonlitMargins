@@ -1,11 +1,37 @@
+import type { Metadata } from "next";
 import Chapter from "@/components/Chapter";
 import MarginNote from "@/components/MarginNote";
 import BookStackMotif from "@/components/icons/BookStackMotif";
 import MemberAvatarImage from "@/components/MemberAvatarImage";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SOCIAL_PLATFORMS, buildSocialUrl, type SocialsMap } from "@/lib/socials";
+import { DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
+
+const TITLE = "Meet the Sisterhood";
+const DESCRIPTION =
+  "Meet the founders, leadership council, and members of The Moonlit Margins Sisterhood — the women building a book club rooted in real community and connection.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/sisterhood" },
+  openGraph: {
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    url: absoluteUrl("/sisterhood"),
+    siteName: SITE_NAME,
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TITLE} | ${SITE_NAME}`,
+    description: DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
+  },
+};
 
 type Member = {
   id: string;

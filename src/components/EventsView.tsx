@@ -151,7 +151,13 @@ function EventCard({ event, isPast }: { event: EventRow; isPast: boolean }) {
       <div className="flex gap-5">
         {event.cover_image_url ? (
           <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-surfaceRaised sm:h-40 sm:w-28">
-            <Image src={event.cover_image_url} alt="" fill sizes="(min-width: 640px) 112px, 80px" className="object-cover" />
+            <Image
+              src={event.cover_image_url}
+              alt={`${event.title} event photo`}
+              fill
+              sizes="(min-width: 640px) 112px, 80px"
+              className="object-cover"
+            />
           </div>
         ) : null}
 
