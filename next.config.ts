@@ -32,6 +32,24 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  // Pre-configured ahead of the planned migration off the current live Wix
+  // site onto this domain -- these old-site paths were confirmed by
+  // fetching the live Wix site on 2026-07-26, and have no effect until
+  // this app is actually serving that domain (Wix is still live there
+  // right now). The moment DNS cutover happens, these 301s start
+  // preserving whatever search ranking/backlinks the old Wix URLs
+  // accumulated, redirecting them straight to their equivalent page here.
+  async redirects() {
+    return [
+      { source: "/services-3", destination: "/join", permanent: true },
+      { source: "/about-5-1", destination: "/interview", permanent: true },
+      { source: "/about-1-1", destination: "/collab", permanent: true },
+      { source: "/event-list", destination: "/events", permanent: true },
+      { source: "/about-the-sisterhood", destination: "/sisterhood", permanent: true },
+      { source: "/about-5", destination: "/memories", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;
