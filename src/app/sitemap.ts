@@ -19,7 +19,6 @@ async function getPublishedEventSlugs(): Promise<string[]> {
 const STATIC_PAGES: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/sisterhood", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/find-a-sister", changeFrequency: "monthly", priority: 0.6 },
   { path: "/events", changeFrequency: "daily", priority: 0.9 },
   { path: "/memories", changeFrequency: "weekly", priority: 0.6 },
   { path: "/join", changeFrequency: "monthly", priority: 0.9 },

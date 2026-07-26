@@ -4,6 +4,7 @@ import Chapter from "@/components/Chapter";
 import MarginNote from "@/components/MarginNote";
 import BookStackMotif from "@/components/icons/BookStackMotif";
 import MemberAvatarImage from "@/components/MemberAvatarImage";
+import FindASisterSearch from "@/components/FindASisterSearch";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SOCIAL_PLATFORMS, buildSocialUrl, type SocialsMap } from "@/lib/socials";
 import { DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/lib/seo";
@@ -169,12 +170,38 @@ export default async function SisterhoodPage() {
         </section>
       ) : null}
 
+      {/* Find a sister -- moved from the standalone /find-a-sister route
+          (see next.config.ts's redirect from that path to here, and
+          Header.tsx's nav link, now #find-a-sister so it can jump straight
+          to this section). Functionality unchanged, just relocated. */}
+      <section id="find-a-sister" className="border-t border-hairline bg-surface/40">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <Chapter number="five" title="Find a sister near you" as="h2" />
+          <p className="max-w-xl text-sm leading-relaxed text-muted">
+            Search by state to see sisters in your area and neighboring states,
+            a little constellation of the sisterhood, close to home.
+          </p>
+
+          {/* Persistent, regardless of search results -- this section is for
+              prospective members too, not just existing ones checking who's
+              nearby. */}
+          <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-hairline bg-surface p-5">
+            <p className="text-sm text-muted">Not a member yet?</p>
+            <LinkButton href="/join">Join the Sisterhood</LinkButton>
+          </div>
+
+          <div className="mt-10">
+            <FindASisterSearch />
+          </div>
+        </div>
+      </section>
+
       {/* Beyond a book club / author interviews / active social presence --
           three ideas Kaya wanted the site's own copy to reflect, written
           fresh in this page's own voice rather than as a bullet list. */}
       <section className="border-t border-hairline">
         <div className="mx-auto max-w-5xl px-6 py-20">
-          <Chapter number="five" title="More than a book club" as="h2" />
+          <Chapter number="six" title="More than a book club" as="h2" />
           <div className="max-w-2xl space-y-5 text-sm leading-relaxed text-muted">
             <p>
               We didn&rsquo;t build this to be another place to log what you&rsquo;re

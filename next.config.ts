@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
       { source: "/event-list", destination: "/events", permanent: true },
       { source: "/about-the-sisterhood", destination: "/sisterhood", permanent: true },
       { source: "/about-5", destination: "/memories", permanent: true },
+      // /find-a-sister was a real, briefly-live route on this app (not a
+      // Wix-era path) that got folded into a section on /sisterhood --
+      // redirected rather than left to 404 since it may already be
+      // shared/indexed.
+      { source: "/find-a-sister", destination: "/sisterhood", permanent: true },
     ];
   },
 };
