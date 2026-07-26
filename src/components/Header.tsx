@@ -8,7 +8,6 @@ import SearchOverlay from "@/components/SearchOverlay";
 
 const NAV_LINKS = [
   { href: "/sisterhood", label: "The sisterhood" },
-  { href: "/sisterhood#find-a-sister", label: "Find a sister" },
   { href: "/events", label: "Events" },
   { href: "/memories", label: "Memories" },
   { href: "/partner?type=collab", label: "Partner with us" },
