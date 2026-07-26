@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LinkButton } from "@/components/Button";
 import Chapter from "@/components/Chapter";
 import MarginNote from "@/components/MarginNote";
 import BookStackMotif from "@/components/icons/BookStackMotif";
@@ -11,7 +12,7 @@ export const revalidate = 3600;
 
 const TITLE = "Meet the Sisterhood";
 const DESCRIPTION =
-  "Meet the founders, leadership council, and members of The Moonlit Margins Sisterhood — the women building a book club rooted in real community and connection.";
+  "Meet the women of The Moonlit Margins Sisterhood: a community built on belonging, author interviews, and real connection that goes beyond the book club.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -76,11 +77,12 @@ export default async function SisterhoodPage() {
             This is the sisterhood.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-muted">
-            A constellation of diverse, hardworking women bound by a passion
-            for stories and for life itself. Here you&rsquo;ll find women who
-            lift one another, who laugh and cry together, and who always have
-            each other&rsquo;s backs, proving that when we share stories, we
-            don&rsquo;t just turn pages, we live them side by side.
+            A constellation of diverse, hardworking women in our online
+            reading community, bound by a passion for stories and for life
+            itself. Here you&rsquo;ll find women who lift one another, who
+            laugh and cry together, and who always have each other&rsquo;s
+            backs, proving that when we share stories, we don&rsquo;t just
+            turn pages, we live them side by side.
           </p>
         </div>
       </section>
@@ -89,7 +91,7 @@ export default async function SisterhoodPage() {
       {founders.length > 0 ? (
         <section className="border-b border-hairline">
           <div className="mx-auto max-w-5xl px-6 py-20">
-            <Chapter number="one" title="Where it started" />
+            <Chapter number="one" title="Where it started" as="h2" />
             <div className="grid gap-6 sm:grid-cols-2">
               {founders.map((founder) => (
                 <FounderCard key={founder.id} member={founder} />
@@ -103,7 +105,7 @@ export default async function SisterhoodPage() {
       {council.length > 0 ? (
         <section className="border-b border-hairline bg-surface/40">
           <div className="mx-auto max-w-5xl px-6 py-20">
-            <Chapter number="two" title="The leadership council" />
+            <Chapter number="two" title="The leadership council" as="h2" />
             <p className="max-w-lg text-sm text-muted">
               The women who keep the sisterhood running week to week, from
               events to the community itself.
@@ -121,7 +123,7 @@ export default async function SisterhoodPage() {
       {juniorCouncil.length > 0 ? (
         <section className="border-b border-hairline">
           <div className="mx-auto max-w-5xl px-6 py-20">
-            <Chapter number="three" title="The junior council" />
+            <Chapter number="three" title="The junior council" as="h2" />
             <p className="max-w-lg text-sm text-muted">
               Rising leaders learning the ropes of running the sisterhood,
               working alongside the council on events and community.
@@ -139,7 +141,7 @@ export default async function SisterhoodPage() {
       {everyoneElse.length > 0 ? (
         <section>
           <div className="mx-auto max-w-5xl px-6 py-20">
-            <Chapter number="four" title="The members" />
+            <Chapter number="four" title="The members" as="h2" />
             <div className="grid gap-8 sm:grid-cols-2">
               <p className="max-w-md text-sm leading-relaxed text-muted">
                 The wider circle of sisters who make this a community instead
@@ -166,6 +168,47 @@ export default async function SisterhoodPage() {
           </p>
         </section>
       ) : null}
+
+      {/* Beyond a book club / author interviews / active social presence --
+          three ideas Kaya wanted the site's own copy to reflect, written
+          fresh in this page's own voice rather than as a bullet list. */}
+      <section className="border-t border-hairline">
+        <div className="mx-auto max-w-5xl px-6 py-20">
+          <Chapter number="five" title="More than a book club" as="h2" />
+          <div className="max-w-2xl space-y-5 text-sm leading-relaxed text-muted">
+            <p>
+              We didn&rsquo;t build this to be another place to log what you&rsquo;re
+              reading. It&rsquo;s a home for belonging, for the kind of creativity
+              and confidence that comes from being fully seen by women who get
+              it. A shared book is just the excuse to show up for each other.
+            </p>
+            <p>
+              That same spirit spills into the stories themselves. We regularly
+              sit down with the authors and narrators behind the books we love
+              for live interviews and spotlight conversations, pulling back the
+              curtain on the people who make our reading life what it is.
+            </p>
+            <p>
+              And the sisterhood doesn&rsquo;t live only here. Find us swapping
+              recommendations and behind-the-scenes moments on TikTok,
+              Instagram, and Facebook, alongside everything on this site. A
+              community this alive was never going to fit in just one place.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-hairline bg-surface/40">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+          <p className="font-voice text-2xl text-parchment">Ready to pull up a chair?</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
+            Applications to join our virtual book club are open.
+          </p>
+          <div className="mt-6">
+            <LinkButton href="/join">Join the sisterhood</LinkButton>
+          </div>
+        </div>
+      </section>
     </>
   );
 }

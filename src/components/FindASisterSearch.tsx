@@ -188,7 +188,7 @@ export default function FindASisterSearch() {
         results.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-hairline bg-surface p-8 text-center">
             <p className="font-voice text-xl text-parchment">
-              No sisters found nearby yet &mdash; be the first!
+              No sisters found nearby yet. Be the first!
             </p>
             <div className="mt-5">
               <LinkButton href="/join">Apply to join</LinkButton>

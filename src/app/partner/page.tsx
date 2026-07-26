@@ -41,7 +41,7 @@ export default function PartnerPage() {
           <div>
             <Chapter number="two" title="Interview or partner with us" />
             <h1 className="font-voice text-4xl text-parchment">
-              Let&rsquo;s work together.
+              Author &amp; Narrator Interviews: Let&rsquo;s Work Together.
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
               We regularly feature and interview the narrators and authors behind the books we
@@ -54,6 +54,7 @@ export default function PartnerPage() {
               src="/brand/dragon-illustration.png"
               alt=""
               fill
+              sizes="(min-width: 448px) 448px, 100vw"
               className="object-cover"
               priority
             />

@@ -173,14 +173,14 @@ export default function JoinPage() {
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
             <Chapter number="one" title="Join the sisterhood" />
-            <h1 className="font-voice text-4xl text-parchment">Applications are open.</h1>
+            <h1 className="font-voice text-4xl text-parchment">Join the Sisterhood: Applications Are Open.</h1>
             <p className="mt-2 font-voice text-lg italic text-lilac-soft">
               We&rsquo;d love to get to know you.
             </p>
 
             <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted">
               Applications are open, but we&rsquo;ll begin interviewing and welcoming
-              new sisters on {INTERVIEWS_BEGIN}. Until then, we&rsquo;re
+              new sisters to our virtual book club on {INTERVIEWS_BEGIN}. Until then, we&rsquo;re
               intentionally pouring into the incredible community we&rsquo;ve
               already built while preparing for our next chapter.
             </p>
@@ -196,6 +196,7 @@ export default function JoinPage() {
               src="/brand/dragon-illustration.png"
               alt=""
               fill
+              sizes="(min-width: 448px) 448px, 100vw"
               className="object-cover"
               priority
             />
@@ -207,12 +208,12 @@ export default function JoinPage() {
         </div>
 
         <div className="mt-10 rounded-2xl border border-hairline bg-surface p-6">
-          <p className="font-voice text-lg text-parchment">What&rsquo;s required of me if I&rsquo;m accepted?</p>
+          <h2 className="font-voice text-lg text-parchment">What&rsquo;s required of me if I&rsquo;m accepted?</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             Once accepted, we ask every sister to take part in at least one Book of the Month
             discussion each cycle, show up (virtually or in person) when you&rsquo;re able, and
             treat this community with the same care you&rsquo;d want back. Membership isn&rsquo;t a
-            spectator sport &mdash; it&rsquo;s a sisterhood, and it only works if we all show up
+            spectator sport. It&rsquo;s a sisterhood, and it only works if we all show up
             for it.
           </p>
         </div>

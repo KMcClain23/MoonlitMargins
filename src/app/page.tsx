@@ -11,7 +11,7 @@ import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_NAME, SITE_URL, SOCIAL_URLS } from 
 
 const TITLE = "Virtual Book Club & Reading Community for Women";
 const DESCRIPTION =
-  "More than a book club — The Moonlit Margins Sisterhood connects women readers nationwide through monthly reads, discussions, author events, and an annual meetup.";
+  "More than a book club: The Moonlit Margins Sisterhood is a virtual home for belonging, author interviews, and a nationwide community of women readers.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -112,9 +112,9 @@ export default function Home() {
             <br />A home for your reading life.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base text-muted sm:text-lg">
-            The Moonlit Margins Sisterhood connects readers across the country
-            through stories, real conversation, and showing up for each other
-            the way we show up for the books we love.
+            The Moonlit Margins Sisterhood is a virtual book club connecting
+            readers across the country through stories, real conversation, and
+            showing up for each other the way we show up for the books we love.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <LinkButton href="/join">Apply to join</LinkButton>
@@ -131,7 +131,7 @@ export default function Home() {
       <section className="bg-surface md:sticky md:top-0 md:z-[2] md:flex md:min-h-screen md:items-center">
         <Parallax speed={0.08} className="mx-auto grid max-w-5xl gap-12 px-6 py-24 md:grid-cols-2">
           <div>
-            <Chapter number="one" title="Welcome" />
+            <Chapter number="one" title="Welcome" as="h2" />
             <p className="font-voice text-2xl text-parchment">Applications are open.</p>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
               We&rsquo;d love to get to know you. We&rsquo;ll begin interviewing
@@ -178,7 +178,7 @@ export default function Home() {
           fuller section instead of two thinner ones. */}
       <section className="bg-ink md:sticky md:top-0 md:z-[3] md:flex md:min-h-screen md:items-center">
         <Parallax speed={0.08} className="mx-auto max-w-5xl px-6 py-24">
-          <Chapter number="two" title="What membership looks like" />
+          <Chapter number="two" title="What membership looks like" as="h2" />
           <h2 className="font-voice text-3xl text-parchment sm:text-4xl">
             Everything that comes with pulling up a chair.
           </h2>
@@ -195,8 +195,17 @@ export default function Home() {
             ))}
           </div>
 
+          <p className="mt-8 text-sm text-muted">
+            See what&rsquo;s on the calendar, including reading sprints, TikTok lives, and the next
+            meetup, on our{" "}
+            <a href="/events" className="text-lilac-soft underline decoration-hairline underline-offset-2 hover:text-parchment">
+              events page
+            </a>
+            .
+          </p>
+
           <div className="mt-16">
-            <Chapter number="three" title="Find your way in" />
+            <Chapter number="three" title="Find your way in" as="h2" />
             <div className="grid gap-6 md:grid-cols-3">
               <PathCard
                 href="/join"
@@ -223,7 +232,7 @@ export default function Home() {
           footer and doesn't need to compete for that much space. */}
       <section className="bg-surface md:sticky md:top-0 md:z-[4]">
         <Parallax speed={0.08} className="mx-auto max-w-4xl px-6 py-16 text-center">
-          <Chapter number="four" title="Keep in touch" />
+          <Chapter number="four" title="Keep in touch" as="h2" />
           <h2 className="font-voice text-3xl italic text-parchment sm:text-4xl">
             Find us where the moonlight lingers&hellip;
           </h2>

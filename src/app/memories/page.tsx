@@ -17,7 +17,7 @@ export const revalidate = 3600;
 
 const TITLE = "Memories From Meetups & Reading Sprints";
 const DESCRIPTION =
-  "Photos and videos from The Moonlit Margins Sisterhood's meetups, reading sprints, and events — a look back at moments shared across the whole community.";
+  "Photos and videos from The Moonlit Margins Sisterhood's meetups, reading sprints, and events: a look back at moments shared across the whole community.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -122,7 +122,7 @@ export default async function MemoriesPage() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-20">
       <Chapter number="one" title="Looking back" />
-      <h1 className="font-voice text-4xl text-parchment">Memories.</h1>
+      <h1 className="font-voice text-4xl text-parchment">Sisterhood Memories &amp; Meetups.</h1>
       <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
         Moments from meetups, reading sprints, and everything in between.
       </p>
@@ -136,7 +136,7 @@ export default async function MemoriesPage() {
         <div className="mt-12 space-y-12">
           {grouped.map((group) => (
             <div key={group.label}>
-              <p className="eyebrow mb-4">{group.label}</p>
+              <h2 className="eyebrow mb-4">{group.label}</h2>
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {group.items.map((memory) => (
                   <MemoryCard
@@ -153,6 +153,14 @@ export default async function MemoriesPage() {
           ))}
         </div>
       )}
+
+      <p className="mt-16 text-sm text-muted">
+        Want to be part of the next one?{" "}
+        <a href="/join" className="text-lilac-soft underline decoration-hairline underline-offset-2 hover:text-parchment">
+          Join the sisterhood
+        </a>
+        .
+      </p>
     </section>
   );
 }

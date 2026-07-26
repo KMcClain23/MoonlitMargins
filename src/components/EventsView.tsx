@@ -124,7 +124,7 @@ export default function EventsView({ events }: { events: EventRow[] }) {
               key={group.label}
               className={`rounded-2xl p-6 ${index % 2 === 1 ? "bg-white/[0.06]" : ""}`}
             >
-              <p className="eyebrow mb-4">{group.label}</p>
+              <h2 className="eyebrow mb-4">{group.label}</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 {group.events.map((event) => (
                   <EventCard key={event.id} event={event} isPast={listTab === "past"} />

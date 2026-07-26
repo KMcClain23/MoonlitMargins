@@ -45,7 +45,7 @@ export default function EventRsvpSection({
         Get tickets
       </a>
     ) : (
-      <p className="text-sm text-muted">Ticket details coming soon — check back or follow us on TikTok.</p>
+      <p className="text-sm text-muted">Ticket details coming soon. Check back or follow us on TikTok.</p>
     );
   }
 

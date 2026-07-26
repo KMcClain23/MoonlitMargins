@@ -6,7 +6,7 @@ import { DEFAULT_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/lib/seo";
 
 const TITLE = "Find a Sister Near You";
 const DESCRIPTION =
-  "Search The Moonlit Margins Sisterhood by state to find members near you and in neighboring states — a constellation of sisters close to home, wherever you live.";
+  "Search The Moonlit Margins Sisterhood by state to find members near you and in neighboring states: a constellation of sisters close to home, wherever you live.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -36,7 +36,7 @@ export default function FindASisterPage() {
         <Chapter number="one" title="Find a sister" />
         <h1 className="font-voice text-4xl text-parchment">Find a sister near you.</h1>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">
-          Search by state to see sisters in your area and neighboring states &mdash;
+          Search by state to see sisters in your area and neighboring states,
           a little constellation of the sisterhood, close to home.
         </p>
 

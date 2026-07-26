@@ -38,7 +38,7 @@ function eventDescription(event: NonNullable<Awaited<ReturnType<typeof getEvent>
   }
   const typeLabel = TYPE_LABELS[event.event_type] ?? "Event";
   const when = new Date(event.starts_at).toLocaleDateString("en-US", { dateStyle: "medium" });
-  return `${typeLabel} with The Moonlit Margins Sisterhood — ${when}${event.location ? ` in ${event.location}` : ""}.`;
+  return `${typeLabel} with The Moonlit Margins Sisterhood on ${when}${event.location ? ` in ${event.location}` : ""}.`;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -148,6 +148,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         />
       </div>
 
+      {!isPast ? (
+        <p className="mt-4 text-sm text-muted">
+          Not a member yet?{" "}
+          <Link href="/join" className="text-lilac-soft underline decoration-hairline underline-offset-2 hover:text-parchment">
+            Join the sisterhood
+          </Link>{" "}
+          to be part of the next one.
+        </p>
+      ) : null}
+
       {event.cover_image_url ? (
         <div className="relative mt-12 aspect-video w-full overflow-hidden rounded-2xl border border-hairline bg-surfaceRaised">
           <Image
@@ -162,7 +172,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
       <div className="mt-12 space-y-4 border-t border-hairline pt-8">
         <div>
-          <p className="mb-1 font-voice text-lg text-parchment">Time &amp; location</p>
+          <h2 className="mb-1 font-voice text-lg text-parchment">Time &amp; location</h2>
           <p className="text-sm text-muted">{dateRange}</p>
           <p className="text-sm text-muted">{event.location ?? "Virtual"}</p>
         </div>
