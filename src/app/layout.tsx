@@ -23,13 +23,10 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
-// NOTE: metadataBase resolves any relative URLs in metadata (like the
-// auto-detected opengraph-image.tsx, and any page that only sets a path
-// for openGraph.images) into absolute ones. Driven by SITE_URL
-// (NEXT_PUBLIC_SITE_URL, default https://www.themoonlitmarginssisterhood.com
-// -- see src/lib/seo.ts) rather than hardcoded here, so pointing the whole
-// site at a different origin (a Vercel preview URL for staging, or the
-// custom domain once DNS cutover happens) is a one-line env var change.
+// NOTE: metadataBase resolves any relative URLs in metadata into absolute
+// ones. Driven by SITE_URL (see src/lib/seo.ts for the full
+// NEXT_PUBLIC_SITE_URL -> VERCEL_PROJECT_PRODUCTION_URL -> hardcoded
+// fallback chain, and why it exists) rather than hardcoded here.
 export const metadata: Metadata = {
   title: {
     template: `%s | ${SITE_NAME}`,
