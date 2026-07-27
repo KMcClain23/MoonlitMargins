@@ -56,6 +56,6 @@ export function absoluteUrl(path: string): string {
 // file was dead code that also still had the old placeholder logo nobody
 // had fixed. One mechanism, not two competing ones.
 export const DEFAULT_OG_IMAGE = {
-  url: absoluteUrl("/brand/moon-flame-emblem.png"),
-  alt: `${SITE_NAME} emblem`,
+  url: absoluteUrl("/brand/dragon-illustration.png"),
+  alt: `${SITE_NAME} dragon illustration`,
 };
