@@ -7,9 +7,9 @@ import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin");
+  const hasOwnChrome = pathname?.startsWith("/admin") || pathname?.startsWith("/portal");
 
-  if (isAdmin) {
+  if (hasOwnChrome) {
     return <>{children}</>;
   }
 
