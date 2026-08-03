@@ -53,12 +53,12 @@ export async function GET(request: NextRequest) {
 
 const patchSchema = z.object({
   phone: z.string().nullable().optional(),
-  contacts_hide_from_directory: z.boolean().optional(),
-  contacts_share_last_name: z.boolean().optional(),
-  contacts_share_email: z.boolean().optional(),
-  contacts_share_phone: z.boolean().optional(),
-  contacts_share_socials: z.boolean().optional(),
-  contacts_share_photo: z.boolean().optional(),
+  contactsHideFromDirectory: z.boolean().optional(),
+  contactsShareLastName: z.boolean().optional(),
+  contactsShareEmail: z.boolean().optional(),
+  contactsSharePhone: z.boolean().optional(),
+  contactsShareSocials: z.boolean().optional(),
+  contactsSharePhoto: z.boolean().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -72,11 +72,32 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
+  const {
+    phone,
+    contactsHideFromDirectory,
+    contactsShareLastName,
+    contactsShareEmail,
+    contactsSharePhone,
+    contactsShareSocials,
+    contactsSharePhoto,
+  } = parsed.data;
+
   // A true partial update -- only the keys actually present in the
   // request are written, unlike the admin members PATCH route (which
   // always rewrites the whole row from a full form submit). A member
   // toggling just one sharing preference must never reset the others.
-  const update = parsed.data;
+  // Translated from the camelCase the client sends (matching every other
+  // API body in this app) to the snake_case columns Supabase expects,
+  // only here at the last moment.
+  const update: Record<string, unknown> = {};
+  if (phone !== undefined) update.phone = phone;
+  if (contactsHideFromDirectory !== undefined) update.contacts_hide_from_directory = contactsHideFromDirectory;
+  if (contactsShareLastName !== undefined) update.contacts_share_last_name = contactsShareLastName;
+  if (contactsShareEmail !== undefined) update.contacts_share_email = contactsShareEmail;
+  if (contactsSharePhone !== undefined) update.contacts_share_phone = contactsSharePhone;
+  if (contactsShareSocials !== undefined) update.contacts_share_socials = contactsShareSocials;
+  if (contactsSharePhoto !== undefined) update.contacts_share_photo = contactsSharePhoto;
+
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ success: true });
   }
