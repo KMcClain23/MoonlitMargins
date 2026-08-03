@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import OrientationCheckIn from "@/components/portal/OrientationCheckIn";
 
 type Step = { id: string; title: string; description: string | null; completed: boolean };
 
@@ -80,6 +81,10 @@ export default function OrientationChecklist({
           ))
         )}
       </div>
+
+      {/* Only shown once a mentor is actually assigned -- the send button
+          has nowhere to route a check-in without one. */}
+      {mentorName ? <OrientationCheckIn mentorName={mentorName} /> : null}
     </div>
   );
 }

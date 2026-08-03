@@ -143,3 +143,26 @@ export async function sendPrivateEventInviteEmail(params: {
     text: `You've been invited to a private sisterhood event.\n\n${eventTitle}\n${when}${location ? `\n${location}` : ""}${description ? `\n\n${description}` : ""}\n\nThis one's just for us -- keep the details close.`,
   });
 }
+
+/**
+ * Sent to a member's assigned mentor (an admin_users row) when she sends a
+ * check-in update from the portal orientation page. See
+ * api/portal/orientation/check-in/route.ts for why this goes straight to
+ * push+email rather than through the conversations/messages system --
+ * members aren't admin_users and have no way to be a message sender there.
+ */
+export async function sendOrientationCheckInEmail(params: {
+  recipientEmail: string;
+  mentorName: string;
+  memberName: string;
+  message: string;
+}) {
+  const { recipientEmail, mentorName, memberName, message } = params;
+
+  await resend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to: recipientEmail,
+    subject: `${memberName} checked in during orientation`,
+    text: `Hi ${mentorName},\n\n${memberName} just sent a check-in update during orientation:\n\n"${message}"\n\nFollow up with her however feels right -- this note doesn't reply anywhere, so reach out directly.`,
+  });
+}
