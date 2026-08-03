@@ -4,17 +4,17 @@ import MemberRow from "@/components/admin/MemberRow";
 
 export const dynamic = "force-dynamic";
 
-async function getMembers() {
+async function getMembersAndMentors() {
   const supabase = supabaseServer();
-  const { data } = await supabase
-    .from("members")
-    .select("*")
-    .order("display_order", { ascending: true });
-  return data ?? [];
+  const [{ data: members }, { data: adminUsers }] = await Promise.all([
+    supabase.from("members").select("*").order("display_order", { ascending: true }),
+    supabase.from("admin_users").select("id, full_name").order("full_name", { ascending: true }),
+  ]);
+  return { members: members ?? [], mentorOptions: adminUsers ?? [] };
 }
 
 export default async function AdminMembersPage() {
-  const members = await getMembers();
+  const { members, mentorOptions } = await getMembersAndMentors();
 
   return (
     <div>
@@ -28,7 +28,9 @@ export default async function AdminMembersPage() {
         {members.length === 0 ? (
           <p className="text-sm text-muted">No members added yet.</p>
         ) : (
-          members.map((member) => <MemberRow key={member.id} member={member} />)
+          members.map((member) => (
+            <MemberRow key={member.id} member={member} mentorOptions={mentorOptions} />
+          ))
         )}
       </div>
     </div>

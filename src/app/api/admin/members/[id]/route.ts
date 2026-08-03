@@ -17,6 +17,7 @@ const memberSchema = z.object({
   hideFromDirectory: z.boolean().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
+  mentorAdminUserId: z.string().uuid().nullable().optional(),
 });
 
 export async function DELETE(
@@ -45,8 +46,22 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { fullName, role, bio, email, photoUrl, photoZoom, photoOffsetX, photoOffsetY, tier, socials, hideFromDirectory, state, country } =
-    parsed.data;
+  const {
+    fullName,
+    role,
+    bio,
+    email,
+    photoUrl,
+    photoZoom,
+    photoOffsetX,
+    photoOffsetY,
+    tier,
+    socials,
+    hideFromDirectory,
+    state,
+    country,
+    mentorAdminUserId,
+  } = parsed.data;
   const supabase = supabaseServer();
   const { error } = await supabase
     .from("members")
@@ -65,6 +80,12 @@ export async function PATCH(
       hide_from_directory: hideFromDirectory ?? false,
       state: state || null,
       country: country || "United States",
+      // Only touched when the field is actually present in the request --
+      // unlike every other field above, the mentor dropdown is edit-only
+      // (see MemberForm.tsx), so a request that omits it entirely (e.g. any
+      // future caller of this route that isn't that form) shouldn't wipe
+      // out an existing assignment.
+      ...(mentorAdminUserId !== undefined ? { mentor_admin_user_id: mentorAdminUserId } : {}),
     })
     .eq("id", id);
 

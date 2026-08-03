@@ -17,7 +17,10 @@ type Member = {
   photo_offset_y: number;
   socials: SocialsMap | null;
   tier: "founder" | "council" | "junior_council" | "member";
+  mentor_admin_user_id: string | null;
 };
+
+type MentorOption = { id: string; full_name: string };
 
 const TIER_LABELS: Record<Member["tier"], string> = {
   founder: "Founder",
@@ -26,12 +29,22 @@ const TIER_LABELS: Record<Member["tier"], string> = {
   member: "",
 };
 
-export default function MemberRow({ member }: { member: Member }) {
+export default function MemberRow({
+  member,
+  mentorOptions,
+}: {
+  member: Member;
+  mentorOptions: MentorOption[];
+}) {
   const [editing, setEditing] = useState(false);
 
   if (editing) {
-    return <MemberForm member={member} onDone={() => setEditing(false)} />;
+    return (
+      <MemberForm member={member} mentorOptions={mentorOptions} onDone={() => setEditing(false)} />
+    );
   }
+
+  const mentorName = mentorOptions.find((m) => m.id === member.mentor_admin_user_id)?.full_name;
 
   return (
     <div className="flex items-center justify-between rounded-2xl border border-hairline bg-surface p-4">
@@ -60,6 +73,7 @@ export default function MemberRow({ member }: { member: Member }) {
             ) : null}
           </p>
           {member.role ? <p className="text-xs text-muted">{member.role}</p> : null}
+          <p className="text-xs text-muted">Mentor: {mentorName ?? "Unassigned"}</p>
         </div>
       </div>
       <div className="flex items-center gap-4">
