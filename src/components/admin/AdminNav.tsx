@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { SECTION_LABELS, type AdminSection } from "@/lib/adminSections";
+import MentorCheckInsBell from "@/components/admin/MentorCheckInsBell";
 
 const ALL_TABS: { href: string; section: AdminSection }[] = [
   { href: "/admin/applications", section: "applications" },
@@ -88,6 +89,12 @@ export default function AdminNav() {
             Sign out
           </button>
         </div>
+
+        {/* Always visible regardless of breakpoint (unlike the rest of row
+            1, which splits into the desktop-only div above and the mobile
+            drawer below) -- a notification indicator shouldn't be tucked
+            behind the hamburger menu on small screens. */}
+        {session ? <MentorCheckInsBell /> : null}
 
         <button
           ref={toggleRef}

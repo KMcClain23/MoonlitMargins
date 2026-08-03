@@ -60,6 +60,24 @@ export async function POST(request: NextRequest) {
   }
 
   const { message } = parsed.data;
+
+  // The durable record, written BEFORE either notification is attempted --
+  // push and email are both best-effort side channels on top of this (and
+  // email in particular fails silently by default right now, since Resend
+  // still isn't configured with a verified domain), so this insert is the
+  // only thing standing between a check-in and it being lost outright. This
+  // is the one failure mode that actually 500s the request; push/email
+  // failing after this point must not.
+  const { error: insertError } = await supabase.from("mentor_check_ins").insert({
+    member_id: session.memberId,
+    mentor_admin_user_id: mentor.id,
+    message,
+  });
+
+  if (insertError) {
+    return NextResponse.json({ error: "Could not save your check-in. Try again." }, { status: 500 });
+  }
+
   const truncatedBody = message.length > 100 ? `${message.slice(0, 100)}…` : message;
 
   // sendExpoPushToAdminUsers already swallows its own failures internally
@@ -72,9 +90,9 @@ export async function POST(request: NextRequest) {
   });
 
   // Best-effort, same "never block the real action" rule as every other
-  // notification in this app -- there's no local DB write behind a
-  // check-in to fall back on if this fails, but there's also nothing left
-  // to do about it besides log it; the push above is the other channel.
+  // notification in this app -- the check-in is already durably saved
+  // above either way, so a failure here just means the mentor falls back
+  // to seeing it in the admin panel instead of getting pinged about it.
   try {
     await sendOrientationCheckInEmail({
       recipientEmail: mentor.email as string,
