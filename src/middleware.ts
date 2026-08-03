@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest } from "@/lib/adminAuth";
 import { sectionForPath } from "@/lib/adminSections";
+import { getMemberSessionFromRequest } from "@/lib/memberAuth";
 
 // Routes that issue a session rather than requiring one -- all must stay
 // reachable without auth, the same way /api/admin/login always has.
@@ -15,8 +16,25 @@ const AUTH_BYPASS_API_PATHS = [
   "/api/admin/auth/google/token",
 ];
 
+// Member portal pages that issue or precede a session rather than requiring
+// one -- /portal/login (the login form itself) and /portal/setup (the
+// token-based first-time password setup flow) must stay reachable without a
+// member_session cookie, the same way /admin/login always has for admins.
+const PORTAL_AUTH_BYPASS_PATHS = ["/portal/login", "/portal/setup"];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Member portal route protection -- entirely separate from the admin
+  // logic below (own session cookie, own bypass list, own redirect target).
+  // Deliberately handled first and returns early so it can never interact
+  // with the admin section/mustChangePassword logic further down.
+  if (pathname.startsWith("/portal") && !PORTAL_AUTH_BYPASS_PATHS.includes(pathname)) {
+    const memberSession = getMemberSessionFromRequest(request);
+    if (!memberSession) {
+      return NextResponse.redirect(new URL("/portal/login", request.url));
+    }
+  }
 
   const isLoginRoute = pathname === "/admin/login";
   const isAdminRoute = pathname.startsWith("/admin");
@@ -101,6 +119,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/portal/:path*"],
   runtime: "nodejs",
 };

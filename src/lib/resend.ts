@@ -101,6 +101,27 @@ export async function sendNewsletterSignupNotification(email: string) {
 }
 
 /**
+ * Sent once, right after an application is accepted (see
+ * applications/[id]/route.ts), inviting the new member to set up her own
+ * portal login. NOTE: this depends on Resend actually being configured
+ * with a verified sending domain -- until then, this send fails
+ * silently like every other best-effort email in this file (the caller
+ * never lets a failed send block the acceptance itself), so no invite
+ * will actually arrive even though the token/expiry are still set
+ * correctly in the database.
+ */
+export async function sendPortalSetupInviteEmail(params: { recipientEmail: string; fullName: string; setupUrl: string }) {
+  const { recipientEmail, fullName, setupUrl } = params;
+
+  await resend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to: recipientEmail,
+    subject: "Set up your Moonlit Margins Sisterhood portal account",
+    text: `Hi ${fullName},\n\nWelcome to The Moonlit Margins Sisterhood! Set up your portal account here:\n\n${setupUrl}\n\nThis link expires in 72 hours.\n\nWith love,\nThe Moonlit Margins Sisterhood`,
+  });
+}
+
+/**
  * Sent to members in a private event's targeted tiers when the event is
  * created. Members have no login of their own, so this email itself is
  * how they actually find out about a private event.
