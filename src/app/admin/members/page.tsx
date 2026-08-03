@@ -4,6 +4,7 @@ import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import MemberForm from "@/components/admin/MemberForm";
 import MemberRow from "@/components/admin/MemberRow";
 import BulkPortalInviteButton from "@/components/admin/BulkPortalInviteButton";
+import SyncAdminPortalAccessButton from "@/components/admin/SyncAdminPortalAccessButton";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ async function getMembersAndMentors() {
   const supabase = supabaseServer();
   const [{ data: members }, { data: adminUsers }] = await Promise.all([
     supabase.from("members").select("*").order("display_order", { ascending: true }),
-    supabase.from("admin_users").select("id, full_name").order("full_name", { ascending: true }),
+    supabase.from("admin_users").select("id, full_name, member_id").order("full_name", { ascending: true }),
   ]);
   return { members: members ?? [], mentorOptions: adminUsers ?? [] };
 }
@@ -22,6 +23,11 @@ export default async function AdminMembersPage() {
   const cookieStore = await cookies();
   const session = parseSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
   const eligibleForPortalInvite = members.filter((m) => !m.password_hash).length;
+
+  const memberIdsWithAdminAccess = new Set(mentorOptions.map((u) => u.member_id).filter(Boolean));
+  const eligibleForAdminSync = members.filter(
+    (m) => !m.password_hash && memberIdsWithAdminAccess.has(m.id)
+  ).length;
 
   return (
     <div>
@@ -35,7 +41,8 @@ export default async function AdminMembersPage() {
           bulk-portal-invite/route.ts) -- hidden entirely for other admins
           rather than shown as a button that would just 403. */}
       {session?.role === "owner" ? (
-        <div className="mt-6">
+        <div className="mt-6 space-y-4">
+          <SyncAdminPortalAccessButton eligibleCount={eligibleForAdminSync} />
           <BulkPortalInviteButton eligibleCount={eligibleForPortalInvite} />
         </div>
       ) : null}
