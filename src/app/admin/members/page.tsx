@@ -4,7 +4,6 @@ import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import MemberForm from "@/components/admin/MemberForm";
 import MemberRow from "@/components/admin/MemberRow";
 import BulkPortalInviteButton from "@/components/admin/BulkPortalInviteButton";
-import SyncAdminPortalAccessButton from "@/components/admin/SyncAdminPortalAccessButton";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,7 @@ async function getMembersAndMentors() {
   const supabase = supabaseServer();
   const [{ data: members }, { data: adminUsers }] = await Promise.all([
     supabase.from("members").select("*").order("display_order", { ascending: true }),
-    supabase.from("admin_users").select("id, full_name, member_id").order("full_name", { ascending: true }),
+    supabase.from("admin_users").select("id, full_name").order("full_name", { ascending: true }),
   ]);
   return { members: members ?? [], mentorOptions: adminUsers ?? [] };
 }
@@ -24,11 +23,6 @@ export default async function AdminMembersPage() {
   const session = parseSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
   const eligibleForPortalInvite = members.filter((m) => !m.password_hash).length;
 
-  const memberIdsWithAdminAccess = new Set(mentorOptions.map((u) => u.member_id).filter(Boolean));
-  const eligibleForAdminSync = members.filter(
-    (m) => !m.password_hash && memberIdsWithAdminAccess.has(m.id)
-  ).length;
-
   return (
     <div>
       <h1 className="font-voice text-3xl text-parchment">Members</h1>
@@ -39,10 +33,14 @@ export default async function AdminMembersPage() {
 
       {/* Bulk-inviting the whole roster is owner-only (see
           bulk-portal-invite/route.ts) -- hidden entirely for other admins
-          rather than shown as a button that would just 403. */}
+          rather than shown as a button that would just 403. Granting
+          portal access via existing admin credentials lives on /admin/users
+          instead (see SyncAdminPortalAccessButton there) -- that action is
+          entirely about admin_users accounts, and most members here never
+          have one, so this bulk-invite is the only path that applies to
+          the roster as a whole. */}
       {session?.role === "owner" ? (
-        <div className="mt-6 space-y-4">
-          <SyncAdminPortalAccessButton eligibleCount={eligibleForAdminSync} />
+        <div className="mt-6">
           <BulkPortalInviteButton eligibleCount={eligibleForPortalInvite} />
         </div>
       ) : null}
