@@ -46,13 +46,16 @@ type Member = {
   photo_offset_y: number;
   socials: SocialsMap | null;
   tier: "founder" | "council" | "junior_council" | "member";
+  contacts_share_socials: boolean;
 };
 
 async function getMembers(): Promise<Member[]> {
   const supabase = supabaseServer();
   const { data } = await supabase
     .from("members")
-    .select("id, full_name, role, bio, photo_url, photo_zoom, photo_offset_x, photo_offset_y, socials, tier")
+    .select(
+      "id, full_name, role, bio, photo_url, photo_zoom, photo_offset_x, photo_offset_y, socials, tier, contacts_share_socials"
+    )
     // Excludes members rows that exist only to grant an admin_users
     // account portal access (see the admin "grant portal access" flow) --
     // those have no roster presence and shouldn't appear on the public site.
@@ -252,7 +255,7 @@ function FounderCard({ member }: { member: Member }) {
         <div>
           <p className="font-voice text-xl text-parchment">{member.full_name}</p>
           {member.role ? <p className="text-sm text-lilac-soft">{member.role}</p> : null}
-          <SocialIcons socials={member.socials} />
+          <SocialIcons socials={member.contacts_share_socials ? member.socials : null} />
         </div>
       </div>
       {member.bio ? (
@@ -269,7 +272,7 @@ function MemberCard({ member, compact }: { member: Member; compact?: boolean }) 
         <Avatar member={member} size={72} />
         <p className="mt-2 font-voice text-base text-parchment">{member.full_name}</p>
         {member.role ? <p className="text-xs text-lilac-soft">{member.role}</p> : null}
-        <SocialIcons socials={member.socials} />
+        <SocialIcons socials={member.contacts_share_socials ? member.socials : null} />
       </div>
     );
   }
@@ -281,7 +284,7 @@ function MemberCard({ member, compact }: { member: Member; compact?: boolean }) 
         <div>
           <p className="font-voice text-lg text-parchment">{member.full_name}</p>
           {member.role ? <p className="text-xs text-lilac-soft">{member.role}</p> : null}
-          <SocialIcons socials={member.socials} />
+          <SocialIcons socials={member.contacts_share_socials ? member.socials : null} />
         </div>
       </div>
       {member.bio ? (

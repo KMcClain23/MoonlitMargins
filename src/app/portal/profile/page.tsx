@@ -71,7 +71,7 @@ export default function PortalProfilePage() {
     <div className="max-w-xl">
       <h1 className="font-voice text-3xl text-parchment">My Profile</h1>
       <p className="mt-1 text-sm text-muted">
-        Control what the rest of the sisterhood sees about you in the Contacts directory.
+        Control what the rest of the sisterhood sees about you.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-hairline bg-surface p-5">
@@ -113,6 +113,7 @@ export default function PortalProfilePage() {
           />
           <ToggleRow
             label="Social links"
+            description="Also controls whether your socials show on the public /sisterhood page."
             checked={shareSocials}
             onChange={setShareSocials}
             disabled={hideFromDirectory}
