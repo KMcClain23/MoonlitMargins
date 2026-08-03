@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
+import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import MemberForm from "@/components/admin/MemberForm";
 import MemberRow from "@/components/admin/MemberRow";
+import BulkPortalInviteButton from "@/components/admin/BulkPortalInviteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,10 @@ async function getMembersAndMentors() {
 export default async function AdminMembersPage() {
   const { members, mentorOptions } = await getMembersAndMentors();
 
+  const cookieStore = await cookies();
+  const session = parseSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
+  const eligibleForPortalInvite = members.filter((m) => !m.password_hash).length;
+
   return (
     <div>
       <h1 className="font-voice text-3xl text-parchment">Members</h1>
@@ -23,6 +30,15 @@ export default async function AdminMembersPage() {
       <div className="mt-6">
         <MemberForm existingNames={members.map((m) => m.full_name)} />
       </div>
+
+      {/* Bulk-inviting the whole roster is owner-only (see
+          bulk-portal-invite/route.ts) -- hidden entirely for other admins
+          rather than shown as a button that would just 403. */}
+      {session?.role === "owner" ? (
+        <div className="mt-6">
+          <BulkPortalInviteButton eligibleCount={eligibleForPortalInvite} />
+        </div>
+      ) : null}
 
       <div className="mt-8 space-y-3">
         {members.length === 0 ? (

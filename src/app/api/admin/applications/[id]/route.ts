@@ -1,13 +1,10 @@
-import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { updateApplicationStatusInSheet, deleteApplicationRowFromSheet } from "@/lib/googleSheets";
-import { sendPortalSetupInviteEmail } from "@/lib/resend";
-import { absoluteUrl } from "@/lib/seo";
+import { issuePortalInvite } from "@/lib/portalInvite";
 import type { SocialsMap } from "@/lib/socials";
 
 const VALID_STATUSES = ["pending", "in_review", "accepted", "declined"];
-const SETUP_TOKEN_TTL_MS = 1000 * 60 * 60 * 72; // 72 hours
 
 type AcceptedApplication = {
   full_name: string;
@@ -78,34 +75,10 @@ async function provisionMemberAndSendPortalInvite(
   const member = await findOrCreateMemberForApplication(supabase, application);
   if (!member) return; // Already logged inside findOrCreateMemberForApplication.
 
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + SETUP_TOKEN_TTL_MS).toISOString();
-
-  const { error } = await supabase
-    .from("members")
-    .update({ auth_setup_token: token, auth_setup_token_expires_at: expiresAt })
-    .eq("id", member.id);
-
-  if (error) {
-    console.error("[applications] Could not set auth_setup_token for", member.id, error);
-    return;
-  }
-
-  // Best-effort, same "never block the local operation" rule as every
-  // other email/sync side effect in this app -- the application is
-  // already marked accepted and the token is already saved either way.
-  // Depends on Resend actually being configured with a verified sending
-  // domain; until then this fails silently, same as every other email
-  // send here (see sendPortalSetupInviteEmail's own doc comment).
-  try {
-    await sendPortalSetupInviteEmail({
-      recipientEmail: member.email as string,
-      fullName: member.full_name as string,
-      setupUrl: absoluteUrl(`/portal/setup?token=${token}`),
-    });
-  } catch (err) {
-    console.error("[applications] Portal invite email threw:", err);
-  }
+  // Shared with the admin-triggered send/resend routes (see
+  // lib/portalInvite.ts) -- token generation, the email attempt, and its
+  // best-effort failure handling all live there now, not duplicated here.
+  await issuePortalInvite(supabase, member);
 }
 
 export async function PATCH(
