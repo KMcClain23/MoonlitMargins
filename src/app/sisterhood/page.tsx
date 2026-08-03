@@ -53,6 +53,10 @@ async function getMembers(): Promise<Member[]> {
   const { data } = await supabase
     .from("members")
     .select("id, full_name, role, bio, photo_url, photo_zoom, photo_offset_x, photo_offset_y, socials, tier")
+    // Excludes members rows that exist only to grant an admin_users
+    // account portal access (see the admin "grant portal access" flow) --
+    // those have no roster presence and shouldn't appear on the public site.
+    .eq("hide_from_sisterhood_page", false)
     .order("display_order", { ascending: true });
   return data ?? [];
 }
