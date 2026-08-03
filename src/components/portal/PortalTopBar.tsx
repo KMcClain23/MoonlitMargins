@@ -11,6 +11,7 @@ import { usePathname, useRouter } from "next/navigation";
 const NAV_LINKS = [
   { href: "/portal/orientation", label: "Orientation" },
   { href: "/portal/contacts", label: "Contacts" },
+  { href: "/portal/reviews", label: "Reviews" },
   { href: "/portal/profile", label: "My Profile" },
 ];
 
