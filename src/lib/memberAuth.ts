@@ -96,6 +96,36 @@ export function getMemberSessionFromRequest(request: NextRequest): MemberSession
 }
 
 /**
+ * Looks up a member row and builds a ready-to-sign session payload for it,
+ * tagged with the given admin's granted sections -- shared by every place
+ * that mints an admin-linked member bridge session (password login, Google
+ * login, the mobile bearer token-login route) so they can never drift from
+ * each other. Returns null if there's no row to actually bridge to -- the
+ * member row could be missing or (rare, but MemberSession.email is
+ * required) have no email on file.
+ */
+export async function mintAdminLinkedMemberSession(
+  supabase: ReturnType<typeof supabaseServer>,
+  memberId: string,
+  adminSections: string[]
+): Promise<Omit<MemberSession, "expiry"> | null> {
+  const { data: memberRow } = await supabase
+    .from("members")
+    .select("id, full_name, email")
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (!memberRow?.email) return null;
+
+  return {
+    memberId: memberRow.id,
+    fullName: memberRow.full_name,
+    email: memberRow.email,
+    adminSections,
+  };
+}
+
+/**
  * Gates the mobile-only Contacts/Reviews/Orientation routes below. A real
  * member's own session never has adminSections set, so this always passes
  * for them -- unaffected, exactly as before this permission system existed.

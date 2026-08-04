@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabase/server";
 import { setSessionCookie } from "@/lib/adminAuth";
+import { mintAdminLinkedMemberSession, setMemberSessionCookie } from "@/lib/memberAuth";
 import {
   findAdminUserByGoogleEmail,
   linkGoogleEmailToAdminUser,
@@ -83,6 +85,17 @@ export async function GET(request: NextRequest) {
     // login page's router.push("/admin/applications") uses.
     const response = NextResponse.redirect(new URL("/admin", request.url));
     setSessionCookie(response, session);
+
+    // Same admin-linked-member bridge as the password login route -- see
+    // its comment for why. Google sign-in shouldn't be a second-class path
+    // that misses out on it.
+    if (session.memberId) {
+      const linked = await mintAdminLinkedMemberSession(supabaseServer(), session.memberId, session.sections);
+      if (linked) {
+        setMemberSessionCookie(response, linked);
+      }
+    }
+
     return response;
   } catch {
     return failureRedirect("google_failed");

@@ -13,6 +13,8 @@ const ALL_TABS: { href: string; section: AdminSection }[] = [
   { href: "/admin/memories", section: "memories" },
   { href: "/admin/tasks", section: "tasks" },
   { href: "/admin/planner", section: "planner" },
+  { href: "/admin/contacts", section: "contacts" },
+  { href: "/admin/reviews", section: "reviews" },
   { href: "/admin/users", section: "users" },
 ];
 

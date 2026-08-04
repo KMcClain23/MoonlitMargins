@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { createSessionToken, verifyCredentials } from "@/lib/adminAuth";
-import { createMemberSessionToken } from "@/lib/memberAuth";
+import { createMemberSessionToken, mintAdminLinkedMemberSession } from "@/lib/memberAuth";
 
 // Bearer-token counterpart to /api/admin/login, for clients that can't rely
 // on cookies (the React Native admin app). Same credential check, same
@@ -30,30 +30,9 @@ export async function POST(request: NextRequest) {
   // and the member_id link is trusted server-side data, not user input.
   let member: { token: string; fullName: string; email: string } | null = null;
   if (session.memberId) {
-    const supabase = supabaseServer();
-    const { data: memberRow } = await supabase
-      .from("members")
-      .select("id, full_name, email")
-      .eq("id", session.memberId)
-      .maybeSingle();
-
-    if (memberRow?.email) {
-      member = {
-        token: createMemberSessionToken({
-          memberId: memberRow.id,
-          fullName: memberRow.full_name,
-          email: memberRow.email,
-          // Snapshot of this admin's granted sections, checked by
-          // memberSessionHasAdminSection() on the Contacts/Reviews/
-          // Orientation routes -- lets the owner gate this admin's access
-          // to those mobile screens the same way Members/Memories/Planner
-          // are already gated, instead of every linked admin seeing them
-          // unconditionally.
-          adminSections: session.sections,
-        }),
-        fullName: memberRow.full_name,
-        email: memberRow.email,
-      };
+    const linked = await mintAdminLinkedMemberSession(supabaseServer(), session.memberId, session.sections);
+    if (linked) {
+      member = { token: createMemberSessionToken(linked), fullName: linked.fullName, email: linked.email };
     }
   }
 
