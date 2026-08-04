@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-// Orientation isn't part of this task, but it's the one existing portal
-// page (see /portal/orientation) that had no way back to it once you
-// navigated away -- now that this bar is getting real nav links for
-// Contacts/My Profile, leaving it as the odd one out with no link at all
-// would be a stranger gap than just including it here too.
+// Contacts and Reviews are gated behind orientationCompleted -- account
+// settings (My Profile) and the checklist itself (Orientation) stay
+// reachable regardless, since a member who hasn't finished orientation
+// still needs a way to manage her own account and to get to the thing
+// she's supposed to be finishing.
 const NAV_LINKS = [
-  { href: "/portal/orientation", label: "Orientation" },
-  { href: "/portal/contacts", label: "Contacts" },
-  { href: "/portal/reviews", label: "Reviews" },
-  { href: "/portal/profile", label: "My Profile" },
+  { href: "/portal/orientation", label: "Orientation", requiresOrientationComplete: false },
+  { href: "/portal/contacts", label: "Contacts", requiresOrientationComplete: true },
+  { href: "/portal/reviews", label: "Reviews", requiresOrientationComplete: true },
+  { href: "/portal/profile", label: "My Profile", requiresOrientationComplete: false },
 ];
 
-export default function PortalTopBar() {
+export default function PortalTopBar({ orientationCompleted }: { orientationCompleted: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const visibleLinks = NAV_LINKS.filter((link) => !link.requiresOrientationComplete || orientationCompleted);
 
   async function handleLogout() {
     await fetch("/api/portal/auth/logout", { method: "POST" });
@@ -33,7 +35,7 @@ export default function PortalTopBar() {
         </span>
 
         <nav className="flex items-center gap-5">
-          {NAV_LINKS.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
