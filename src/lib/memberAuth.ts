@@ -66,11 +66,24 @@ export function parseMemberSessionToken(token: string | undefined | null): Membe
   }
 }
 
-/** Resolves the current member session from the member_session cookie
- * only -- there's no bearer-token path here (unlike adminAuth.ts's
- * getSessionFromRequest), since nothing outside the browser-based member
- * portal exists yet to need one. */
+/**
+ * Resolves the current member session from either an `Authorization: Bearer
+ * <token>` header (a native client with no equivalent of an httpOnly
+ * cookie) or the existing session cookie (web portal). Bearer is checked
+ * first -- a request that carries one is unambiguously a non-browser
+ * client, and an explicitly-provided-but-invalid bearer token should fail
+ * outright rather than silently falling through to a cookie it never sent.
+ * The cookie path is only consulted when there's no Authorization header at
+ * all, so every existing web code path behaves exactly as before. Same
+ * dual-path pattern as adminAuth.ts's getSessionFromRequest.
+ */
 export function getMemberSessionFromRequest(request: NextRequest): MemberSession | null {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader) {
+    if (!authHeader.startsWith("Bearer ")) return null;
+    return parseMemberSessionToken(authHeader.slice("Bearer ".length).trim());
+  }
+
   return parseMemberSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
 }
 
