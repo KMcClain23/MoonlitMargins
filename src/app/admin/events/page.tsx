@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
 import EventForm from "@/components/admin/EventForm";
-import EventRow from "@/components/admin/EventRow";
+import EventsSearchableList from "@/components/admin/EventsSearchableList";
 
 export const dynamic = "force-dynamic";
 
@@ -60,14 +60,12 @@ export default async function AdminEventsPage({
         <EventForm />
       </div>
 
-      <div className="mt-8 space-y-3">
-        {events.length === 0 ? (
-          <p className="text-sm text-muted">{view === "past" ? "No past events." : "No upcoming events."}</p>
-        ) : (
-          events.map((event) => (
-            <EventRow key={event.id} event={event} currentUserId={session?.adminUserId ?? ""} />
-          ))
-        )}
+      <div className="mt-8">
+        <EventsSearchableList
+          events={events}
+          currentUserId={session?.adminUserId ?? ""}
+          emptyMessage={view === "past" ? "No past events." : "No upcoming events."}
+        />
       </div>
     </div>
   );
