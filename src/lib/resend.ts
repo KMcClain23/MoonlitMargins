@@ -117,7 +117,7 @@ export async function sendPortalSetupInviteEmail(params: { recipientEmail: strin
     from: process.env.RESEND_FROM_EMAIL!,
     to: recipientEmail,
     subject: "Set up your Moonlit Margins Sisterhood portal account",
-    text: `Hi ${fullName},\n\nWelcome to The Moonlit Margins Sisterhood! Set up your portal account here:\n\n${setupUrl}\n\nThis link expires in 72 hours.\n\nWith love,\nThe Moonlit Margins Sisterhood`,
+    text: `Hi ${fullName},\n\nWelcome to The Moonlit Margins Sisterhood! Click below to set up your portal account and choose a password:\n\n${setupUrl}\n\nOnce you're in, you'll find a short orientation checklist to complete with guidance from your mentor. After that, you'll have full access to the portal, including the member Contacts directory and our Reviews tool.\n\nThis link expires in 72 hours.\n\nWith love,\nThe Moonlit Margins Sisterhood`,
   });
 }
 
