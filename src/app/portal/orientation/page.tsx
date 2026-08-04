@@ -20,22 +20,24 @@ export default async function PortalOrientationPage() {
 
   const supabase = supabaseServer();
 
-  const [{ data: allSteps }, { data: progress }, { data: member }, assignedStepIds] = await Promise.all([
-    supabase
-      .from("orientation_steps")
-      .select("id, title, description")
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("member_orientation_progress")
-      .select("orientation_step_id")
-      .eq("member_id", session.memberId),
-    supabase
-      .from("members")
-      .select("orientation_completed_at, mentor_admin_user_id")
-      .eq("id", session.memberId)
-      .maybeSingle(),
-    getAssignedStepIds(supabase, session.memberId),
-  ]);
+  const [{ data: allSteps }, { data: progress }, { data: member }, assignedStepIds, { data: groupMeLinks }] =
+    await Promise.all([
+      supabase
+        .from("orientation_steps")
+        .select("id, title, description, completion_type")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("member_orientation_progress")
+        .select("orientation_step_id")
+        .eq("member_id", session.memberId),
+      supabase
+        .from("members")
+        .select("orientation_completed_at, mentor_admin_user_id")
+        .eq("id", session.memberId)
+        .maybeSingle(),
+      getAssignedStepIds(supabase, session.memberId),
+      supabase.from("orientation_groupme_links").select("id, label, url").order("sort_order", { ascending: true }),
+    ]);
 
   const steps = applyStepAssignment(allSteps ?? [], assignedStepIds);
   const completedStepIds = new Set((progress ?? []).map((p) => p.orientation_step_id as string));
@@ -56,10 +58,12 @@ export default async function PortalOrientationPage() {
         id: s.id,
         title: s.title,
         description: s.description,
+        completionType: s.completion_type as "member" | "admin",
         completed: completedStepIds.has(s.id as string),
       }))}
       mentorName={mentorName}
       completed={Boolean(member?.orientation_completed_at)}
+      groupMeLinks={(groupMeLinks ?? []).map((l) => ({ id: l.id, label: l.label, url: l.url }))}
     />
   );
 }

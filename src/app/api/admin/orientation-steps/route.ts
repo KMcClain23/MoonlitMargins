@@ -6,6 +6,11 @@ import { getSessionFromRequest } from "@/lib/adminAuth";
 const stepSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
+  // Defaults to "member" (matches the column's own DB default) so existing
+  // callers that never send this field -- there weren't any before this
+  // field existed, but a stale client bundle mid-rollout could still hit
+  // this route without it -- keep creating ordinary self-completable steps.
+  completionType: z.enum(["member", "admin"]).optional(),
 });
 
 // "orientation-steps" isn't a section in adminSections.ts, so middleware
@@ -25,7 +30,7 @@ export async function GET(request: NextRequest) {
   const supabase = supabaseServer();
   const { data: steps } = await supabase
     .from("orientation_steps")
-    .select("id, title, description, sort_order")
+    .select("id, title, description, sort_order, completion_type")
     .order("sort_order", { ascending: true });
 
   return NextResponse.json({
@@ -34,6 +39,7 @@ export async function GET(request: NextRequest) {
       title: s.title,
       description: s.description,
       sortOrder: s.sort_order,
+      completionType: s.completion_type,
     })),
   });
 }
@@ -63,6 +69,7 @@ export async function POST(request: NextRequest) {
     title: parsed.data.title,
     description: parsed.data.description || null,
     sort_order: (last?.sort_order ?? -1) + 1,
+    completion_type: parsed.data.completionType ?? "member",
   });
 
   if (error) {

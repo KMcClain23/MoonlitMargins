@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
-  if (!memberSessionHasAdminSection(session, "orientation")) {
+  if (!memberSessionHasAdminSection(session, "member_orientation")) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const [{ data: allSteps }, { data: progress }, { data: member }, assignedStepIds] = await Promise.all([
     supabase
       .from("orientation_steps")
-      .select("id, title, description")
+      .select("id, title, description, completion_type")
       .order("sort_order", { ascending: true }),
     supabase
       .from("member_orientation_progress")
@@ -49,6 +49,11 @@ export async function GET(request: NextRequest) {
       id: s.id,
       title: s.title,
       description: s.description,
+      // Not consumed by the web portal page (it queries the DB directly,
+      // not this route) -- included here for the mobile app's identical
+      // checklist, which fetches this endpoint. Additive field; harmless
+      // for any client not yet reading it.
+      completionType: s.completion_type,
       completed: completedStepIds.has(s.id as string),
     })),
     mentorName,

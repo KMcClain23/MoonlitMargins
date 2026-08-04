@@ -8,7 +8,18 @@ export type AdminSection =
   | "planner"
   | "contacts"
   | "reviews"
-  | "orientation";
+  // Deliberately NOT "orientation" -- sectionForPath below turns any
+  // /admin/orientation* or /api/admin/orientation* path into a section
+  // lookup by matching its first path segment, and this app already has an
+  // unrelated, pre-existing, owner-gated /admin/orientation page (step/
+  // GroupMe-link management) plus /admin/orientation-steps and
+  // /api/admin/orientation* API routes that gate themselves. Naming this
+  // "orientation" collided with all of them: middleware would silently
+  // block any admin (owner included) who didn't have this NEW section
+  // granted from those UNRELATED, already-shipped pages. "member_orientation"
+  // shares no path prefix with any of that, so sectionForPath never matches
+  // it and middleware leaves those routes to their own existing gates.
+  | "member_orientation";
 export type AdminRole = "owner" | "admin" | "editor";
 
 export const ALL_SECTIONS: AdminSection[] = [
@@ -21,7 +32,7 @@ export const ALL_SECTIONS: AdminSection[] = [
   "planner",
   "contacts",
   "reviews",
-  "orientation",
+  "member_orientation",
 ];
 
 export const SECTION_LABELS: Record<AdminSection, string> = {
@@ -34,7 +45,7 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   planner: "Planner",
   contacts: "Contacts",
   reviews: "Reviews",
-  orientation: "Orientation",
+  member_orientation: "Orientation",
 };
 
 // What each role can see by default. A member's allowed_sections column
@@ -49,9 +60,9 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
 // per-admin_user via the Users management UI's allowed_sections override,
 // the same mechanism editor-plus-Applications uses above.
 //
-// "contacts"/"reviews"/"orientation" follow the same rule, for the same
-// reason: nobody (including the owner) gets them automatically. They gate
-// the mobile app's member-portal screens -- an admin's OWN Contacts/
+// "contacts"/"reviews"/"member_orientation" follow the same rule, for the
+// same reason: nobody (including the owner) gets them automatically. They
+// gate the mobile app's member-portal screens -- an admin's OWN Contacts/
 // Reviews/Orientation, reachable only when their admin_users row is also
 // linked to a member row (see /api/admin/auth/token-login's bridge token
 // and memberAuth.ts's memberSessionHasAdminSection). The owner grants these

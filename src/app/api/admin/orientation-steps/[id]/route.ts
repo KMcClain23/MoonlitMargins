@@ -7,6 +7,7 @@ const updateSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   sortOrder: z.number().int().optional(),
+  completionType: z.enum(["member", "admin"]).optional(),
 });
 
 function requireOwner(request: NextRequest) {
@@ -25,15 +26,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, description, sortOrder } = parsed.data;
+  const { title, description, sortOrder, completionType } = parsed.data;
 
   // Partial update -- the admin page uses this same endpoint both for
-  // editing title/description and for the up/down reorder buttons (which
-  // only ever send sortOrder), so only fields actually present are touched.
+  // editing title/description/completionType and for the up/down reorder
+  // buttons (which only ever send sortOrder), so only fields actually
+  // present are touched.
   const update: Record<string, unknown> = {};
   if (title !== undefined) update.title = title;
   if (description !== undefined) update.description = description || null;
   if (sortOrder !== undefined) update.sort_order = sortOrder;
+  if (completionType !== undefined) update.completion_type = completionType;
 
   const supabase = supabaseServer();
   const { error } = await supabase.from("orientation_steps").update(update).eq("id", id);

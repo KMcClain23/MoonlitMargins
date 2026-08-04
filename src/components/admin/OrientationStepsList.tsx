@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import OrientationStepRow from "@/components/admin/OrientationStepRow";
 
-type Step = { id: string; title: string; description: string | null; sort_order: number };
+type Step = {
+  id: string;
+  title: string;
+  description: string | null;
+  sort_order: number;
+  completion_type: "member" | "admin";
+};
 
 export default function OrientationStepsList({ steps }: { steps: Step[] }) {
   const router = useRouter();

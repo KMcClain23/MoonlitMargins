@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
-  if (!memberSessionHasAdminSection(session, "orientation")) {
+  if (!memberSessionHasAdminSection(session, "member_orientation")) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

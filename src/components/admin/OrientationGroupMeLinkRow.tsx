@@ -1,24 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import OrientationStepForm from "@/components/admin/OrientationStepForm";
+import OrientationGroupMeLinkForm from "@/components/admin/OrientationGroupMeLinkForm";
 import DeleteButton from "@/components/admin/DeleteButton";
 
-type Step = {
-  id: string;
-  title: string;
-  description: string | null;
-  sort_order: number;
-  completion_type: "member" | "admin";
-};
+type Link = { id: string; label: string; url: string; sort_order: number };
 
-export default function OrientationStepRow({
-  step,
+export default function OrientationGroupMeLinkRow({
+  link,
   disabled,
   onMoveUp,
   onMoveDown,
 }: {
-  step: Step;
+  link: Link;
   disabled: boolean;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
@@ -27,8 +21,8 @@ export default function OrientationStepRow({
 
   if (editing) {
     return (
-      <OrientationStepForm
-        step={{ id: step.id, title: step.title, description: step.description, completionType: step.completion_type }}
+      <OrientationGroupMeLinkForm
+        link={{ id: link.id, label: link.label, url: link.url }}
         onDone={() => setEditing(false)}
       />
     );
@@ -56,22 +50,15 @@ export default function OrientationStepRow({
           </button>
         </div>
         <div>
-          <div className="flex items-center gap-2">
-            <p className="text-parchment">{step.title}</p>
-            {step.completion_type === "admin" ? (
-              <span className="rounded-full border border-lilac/40 px-2 py-0.5 text-[10px] text-lilac-soft">
-                Admin-marked
-              </span>
-            ) : null}
-          </div>
-          {step.description ? <p className="mt-1 text-xs text-muted">{step.description}</p> : null}
+          <p className="text-parchment">{link.label}</p>
+          <p className="mt-1 truncate text-xs text-muted">{link.url}</p>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-4">
         <button onClick={() => setEditing(true)} className="text-xs text-lilac-soft hover:underline">
           Edit
         </button>
-        <DeleteButton endpoint={`/api/admin/orientation-steps/${step.id}`} />
+        <DeleteButton endpoint={`/api/admin/orientation-groupme-links/${link.id}`} />
       </div>
     </div>
   );

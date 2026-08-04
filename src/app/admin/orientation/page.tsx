@@ -3,24 +3,31 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SESSION_COOKIE, parseSessionToken } from "@/lib/adminAuth";
-import { computeOrientationProgress } from "@/lib/orientationAssignments";
+import { computeOrientationProgress, applyStepAssignment } from "@/lib/orientationAssignments";
 import OrientationStepForm from "@/components/admin/OrientationStepForm";
 import OrientationStepsList from "@/components/admin/OrientationStepsList";
 import MentorAssignmentSelect from "@/components/admin/MentorAssignmentSelect";
+import AdminOrientationStepCompleteButton from "@/components/admin/AdminOrientationStepCompleteButton";
+import OrientationGroupMeLinkForm from "@/components/admin/OrientationGroupMeLinkForm";
+import OrientationGroupMeLinksList from "@/components/admin/OrientationGroupMeLinksList";
 
 export const dynamic = "force-dynamic";
 
 async function getOrientationData() {
   const supabase = supabaseServer();
 
-  const [{ data: steps }, { data: inProgressMembers }, { data: adminUsers }] = await Promise.all([
-    supabase.from("orientation_steps").select("id, title, description, sort_order").order("sort_order", { ascending: true }),
+  const [{ data: steps }, { data: inProgressMembers }, { data: adminUsers }, { data: groupMeLinks }] = await Promise.all([
+    supabase
+      .from("orientation_steps")
+      .select("id, title, description, sort_order, completion_type")
+      .order("sort_order", { ascending: true }),
     supabase
       .from("members")
       .select("id, full_name, mentor_admin_user_id")
       .is("orientation_completed_at", null)
       .order("full_name", { ascending: true }),
     supabase.from("admin_users").select("id, full_name").order("full_name", { ascending: true }),
+    supabase.from("orientation_groupme_links").select("id, label, url, sort_order").order("sort_order", { ascending: true }),
   ]);
 
   const memberIds = (inProgressMembers ?? []).map((m) => m.id as string);
@@ -48,16 +55,29 @@ async function getOrientationData() {
     completedByMember.set(row.member_id as string, set);
   }
 
-  const membersInProgress = (inProgressMembers ?? []).map((member) => ({
-    id: member.id as string,
-    fullName: member.full_name as string,
-    mentorAdminUserId: member.mentor_admin_user_id as string | null,
-    ...computeOrientationProgress(
-      allStepIds,
-      assignedByMember.get(member.id as string) ?? new Set(),
-      completedByMember.get(member.id as string) ?? new Set()
-    ),
-  }));
+  const membersInProgress = (inProgressMembers ?? []).map((member) => {
+    const assignedStepIds = assignedByMember.get(member.id as string) ?? new Set<string>();
+    const completedStepIds = completedByMember.get(member.id as string) ?? new Set<string>();
+
+    // This member's applicable step list (their custom assignment if they
+    // have one, otherwise every step), each flagged with whether THEY'VE
+    // completed it -- what the per-step rows below actually render, not
+    // just the completed/total summary count.
+    const applicableSteps = applyStepAssignment(steps ?? [], assignedStepIds).map((step) => ({
+      id: step.id as string,
+      title: step.title as string,
+      completionType: step.completion_type as "member" | "admin",
+      completed: completedStepIds.has(step.id as string),
+    }));
+
+    return {
+      id: member.id as string,
+      fullName: member.full_name as string,
+      mentorAdminUserId: member.mentor_admin_user_id as string | null,
+      steps: applicableSteps,
+      ...computeOrientationProgress(allStepIds, assignedStepIds, completedStepIds),
+    };
+  });
 
   // Full history, not scoped to any one mentor -- this page is owner-only,
   // so unlike GET /api/admin/mentor-check-ins's default (the viewing
@@ -88,7 +108,18 @@ async function getOrientationData() {
     };
   });
 
-  return { steps: steps ?? [], membersInProgress, mentorOptions: adminUsers ?? [], checkIns };
+  return {
+    steps: steps ?? [],
+    membersInProgress,
+    mentorOptions: adminUsers ?? [],
+    checkIns,
+    groupMeLinks: (groupMeLinks ?? []).map((l) => ({
+      id: l.id as string,
+      label: l.label as string,
+      url: l.url as string,
+      sort_order: l.sort_order as number,
+    })),
+  };
 }
 
 function formatCheckInTime(createdAt: string): string {
@@ -108,7 +139,7 @@ export default async function AdminOrientationPage() {
     redirect("/admin/applications");
   }
 
-  const { steps, membersInProgress, mentorOptions, checkIns } = await getOrientationData();
+  const { steps, membersInProgress, mentorOptions, checkIns, groupMeLinks } = await getOrientationData();
 
   return (
     <div>
@@ -138,6 +169,22 @@ export default async function AdminOrientationPage() {
         </div>
       </section>
 
+      <section id="groupme-links" className="mt-12">
+        <h2 className="font-voice text-xl text-parchment">GroupMe links</h2>
+        <p className="mt-1 text-sm text-muted">
+          Shown to every member on the portal Orientation page as a &ldquo;Join our GroupMe chats&rdquo;
+          list, in this order.
+        </p>
+
+        <div className="mt-4">
+          <OrientationGroupMeLinkForm />
+        </div>
+
+        <div className="mt-6">
+          <OrientationGroupMeLinksList links={groupMeLinks} />
+        </div>
+      </section>
+
       <section id="members-in-progress" className="mt-12">
         <h2 className="font-voice text-xl text-parchment">Members in progress</h2>
         <p className="mt-1 text-sm text-muted">
@@ -152,19 +199,45 @@ export default async function AdminOrientationPage() {
               <div
                 key={member.id}
                 id={`member-${member.id}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface p-4"
+                className="rounded-2xl border border-hairline bg-surface p-4"
               >
-                <div>
-                  <p className="text-parchment">{member.fullName}</p>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {member.completed} of {member.total} step{member.total === 1 ? "" : "s"} complete
-                  </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-parchment">{member.fullName}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {member.completed} of {member.total} step{member.total === 1 ? "" : "s"} complete
+                    </p>
+                  </div>
+                  <MentorAssignmentSelect
+                    memberId={member.id}
+                    mentorAdminUserId={member.mentorAdminUserId}
+                    mentorOptions={mentorOptions}
+                  />
                 </div>
-                <MentorAssignmentSelect
-                  memberId={member.id}
-                  mentorAdminUserId={member.mentorAdminUserId}
-                  mentorOptions={mentorOptions}
-                />
+
+                {/* Admin-type steps get a "Mark complete" button (any admin
+                    can click, not just the assigned mentor) -- member-type
+                    steps are read-only here, since the member does those
+                    themselves in the portal checklist, not an admin on
+                    their behalf. */}
+                {member.steps.length > 0 ? (
+                  <ul className="mt-3 space-y-1.5 border-t border-hairline pt-3">
+                    {member.steps.map((step) => (
+                      <li key={step.id} className="flex items-center justify-between gap-3 text-xs">
+                        <span className={step.completed ? "text-muted line-through" : "text-parchment"}>
+                          {step.title}
+                        </span>
+                        {step.completed ? (
+                          <span className="shrink-0 text-lilac-soft">✓ Done</span>
+                        ) : step.completionType === "admin" ? (
+                          <AdminOrientationStepCompleteButton memberId={member.id} stepId={step.id} />
+                        ) : (
+                          <span className="shrink-0 text-muted">Self-completes</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             ))
           )}
