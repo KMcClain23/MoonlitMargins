@@ -25,6 +25,7 @@ type MemberValues = {
 };
 
 type MentorOption = { id: string; full_name: string };
+type OrientationStepOption = { id: string; title: string };
 
 // Short, maintainable list rather than a full ~195-country roster --
 // "Other" reveals a free-text input for anything not listed. Country
@@ -71,16 +72,28 @@ export default function MemberForm({
   onDone,
   existingNames,
   mentorOptions,
+  orientationSteps,
+  assignedOrientationStepIds,
 }: {
   member?: MemberValues;
   onDone?: () => void;
   existingNames?: string[];
   mentorOptions?: MentorOption[];
+  orientationSteps?: OrientationStepOption[];
+  assignedOrientationStepIds?: string[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isEditing = Boolean(member?.id);
+
+  // Off by default (matches "no assignment rows yet" = full checklist).
+  // Turning it on starts from whichever steps are already explicitly
+  // assigned, if any.
+  const [customOrientation, setCustomOrientation] = useState((assignedOrientationStepIds?.length ?? 0) > 0);
+  const [selectedStepIds, setSelectedStepIds] = useState<Set<string>>(
+    new Set(assignedOrientationStepIds ?? [])
+  );
 
   const [nameInput, setNameInput] = useState(member?.full_name ?? "");
   const isDuplicateName =
@@ -149,12 +162,31 @@ export default function MemberForm({
       body: JSON.stringify(payload),
     });
 
-    setLoading(false);
-
     if (!res.ok) {
+      setLoading(false);
       setError(`Couldn't ${isEditing ? "save" : "add"} that member. Check the fields and try again.`);
       return;
     }
+
+    // Orientation assignment lives in its own table (member_orientation_
+    // assignments), not a column on members, so it needs a second request
+    // -- can't be folded into the PATCH above. Only relevant once there's
+    // an existing member to attach it to.
+    if (isEditing) {
+      const orientationRes = await fetch(`/api/admin/members/${member!.id}/orientation-assignments`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stepIds: customOrientation ? Array.from(selectedStepIds) : null }),
+      });
+      if (!orientationRes.ok) {
+        setLoading(false);
+        setError("Saved the member, but couldn't update their orientation assignment. Try again.");
+        router.refresh();
+        return;
+      }
+    }
+
+    setLoading(false);
 
     if (!isEditing) {
       form.reset();
@@ -252,6 +284,49 @@ export default function MemberForm({
               ))}
             </select>
           </label>
+        ) : null}
+
+        {isEditing ? (
+          <div className="rounded-lg border border-hairline p-3 sm:col-span-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={customOrientation}
+                onChange={(e) => setCustomOrientation(e.target.checked)}
+                className="h-3.5 w-3.5"
+              />
+              <span className="text-xs text-muted">
+                Give this member a custom orientation, instead of the full checklist
+              </span>
+            </label>
+
+            {customOrientation ? (
+              (orientationSteps ?? []).length === 0 ? (
+                <p className="mt-2 pl-5 text-xs text-muted">No orientation steps exist yet.</p>
+              ) : (
+                <div className="mt-2 space-y-1.5 pl-5">
+                  {(orientationSteps ?? []).map((step) => (
+                    <label key={step.id} className="flex items-center gap-2 text-xs text-parchment">
+                      <input
+                        type="checkbox"
+                        checked={selectedStepIds.has(step.id)}
+                        onChange={(e) => {
+                          setSelectedStepIds((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(step.id);
+                            else next.delete(step.id);
+                            return next;
+                          });
+                        }}
+                        className="h-3.5 w-3.5"
+                      />
+                      {step.title}
+                    </label>
+                  ))}
+                </div>
+              )
+            ) : null}
+          </div>
         ) : null}
 
         <label className="block">

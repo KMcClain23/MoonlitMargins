@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getMemberSessionFromRequest } from "@/lib/memberAuth";
+import { getAssignedStepIds, applyStepAssignment } from "@/lib/orientationAssignments";
 
 export async function GET(request: NextRequest) {
   const session = getMemberSessionFromRequest(request);
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = supabaseServer();
 
-  const [{ data: steps }, { data: progress }, { data: member }] = await Promise.all([
+  const [{ data: allSteps }, { data: progress }, { data: member }, assignedStepIds] = await Promise.all([
     supabase
       .from("orientation_steps")
       .select("id, title, description")
@@ -24,8 +25,10 @@ export async function GET(request: NextRequest) {
       .select("orientation_completed_at, mentor_admin_user_id")
       .eq("id", session.memberId)
       .maybeSingle(),
+    getAssignedStepIds(supabase, session.memberId),
   ]);
 
+  const steps = applyStepAssignment(allSteps ?? [], assignedStepIds);
   const completedStepIds = new Set((progress ?? []).map((p) => p.orientation_step_id as string));
 
   let mentorName: string | null = null;
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    steps: (steps ?? []).map((s) => ({
+    steps: steps.map((s) => ({
       id: s.id,
       title: s.title,
       description: s.description,

@@ -9,15 +9,33 @@ export const dynamic = "force-dynamic";
 
 async function getMembersAndMentors() {
   const supabase = supabaseServer();
-  const [{ data: members }, { data: adminUsers }] = await Promise.all([
-    supabase.from("members").select("*").order("display_order", { ascending: true }),
-    supabase.from("admin_users").select("id, full_name").order("full_name", { ascending: true }),
-  ]);
-  return { members: members ?? [], mentorOptions: adminUsers ?? [] };
+  const [{ data: members }, { data: adminUsers }, { data: orientationSteps }, { data: assignments }] =
+    await Promise.all([
+      supabase.from("members").select("*").order("display_order", { ascending: true }),
+      supabase.from("admin_users").select("id, full_name").order("full_name", { ascending: true }),
+      supabase.from("orientation_steps").select("id, title").order("sort_order", { ascending: true }),
+      supabase.from("member_orientation_assignments").select("member_id, orientation_step_id"),
+    ]);
+
+  // Grouped once here rather than per-row -- each MemberRow just looks up
+  // its own member_id, no per-row query needed.
+  const assignedStepIdsByMember = new Map<string, string[]>();
+  for (const row of assignments ?? []) {
+    const list = assignedStepIdsByMember.get(row.member_id as string) ?? [];
+    list.push(row.orientation_step_id as string);
+    assignedStepIdsByMember.set(row.member_id as string, list);
+  }
+
+  return {
+    members: members ?? [],
+    mentorOptions: adminUsers ?? [],
+    orientationSteps: orientationSteps ?? [],
+    assignedStepIdsByMember,
+  };
 }
 
 export default async function AdminMembersPage() {
-  const { members, mentorOptions } = await getMembersAndMentors();
+  const { members, mentorOptions, orientationSteps, assignedStepIdsByMember } = await getMembersAndMentors();
 
   const cookieStore = await cookies();
   const session = parseSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
@@ -50,7 +68,13 @@ export default async function AdminMembersPage() {
           <p className="text-sm text-muted">No members added yet.</p>
         ) : (
           members.map((member) => (
-            <MemberRow key={member.id} member={member} mentorOptions={mentorOptions} />
+            <MemberRow
+              key={member.id}
+              member={member}
+              mentorOptions={mentorOptions}
+              orientationSteps={orientationSteps}
+              assignedOrientationStepIds={assignedStepIdsByMember.get(member.id) ?? []}
+            />
           ))
         )}
       </div>

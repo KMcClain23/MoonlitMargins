@@ -22,6 +22,7 @@ type Member = {
 };
 
 type MentorOption = { id: string; full_name: string };
+type OrientationStepOption = { id: string; title: string };
 
 const TIER_LABELS: Record<Member["tier"], string> = {
   founder: "Founder",
@@ -33,9 +34,13 @@ const TIER_LABELS: Record<Member["tier"], string> = {
 export default function MemberRow({
   member,
   mentorOptions,
+  orientationSteps,
+  assignedOrientationStepIds,
 }: {
   member: Member;
   mentorOptions: MentorOption[];
+  orientationSteps: OrientationStepOption[];
+  assignedOrientationStepIds: string[];
 }) {
   const [editing, setEditing] = useState(false);
   const [invitePending, setInvitePending] = useState(false);
@@ -44,7 +49,13 @@ export default function MemberRow({
 
   if (editing) {
     return (
-      <MemberForm member={member} mentorOptions={mentorOptions} onDone={() => setEditing(false)} />
+      <MemberForm
+        member={member}
+        mentorOptions={mentorOptions}
+        orientationSteps={orientationSteps}
+        assignedOrientationStepIds={assignedOrientationStepIds}
+        onDone={() => setEditing(false)}
+      />
     );
   }
 
@@ -104,6 +115,12 @@ export default function MemberRow({
             <p className="text-xs text-muted">Mentor: {mentorName ?? "Unassigned"}</p>
             <p className="text-xs text-muted">
               Portal access: {member.password_hash ? "Active" : "Not set up yet"}
+            </p>
+            <p className="text-xs text-muted">
+              Orientation:{" "}
+              {assignedOrientationStepIds.length > 0
+                ? `${assignedOrientationStepIds.length} custom step${assignedOrientationStepIds.length === 1 ? "" : "s"}`
+                : "Full checklist"}
             </p>
           </div>
         </div>

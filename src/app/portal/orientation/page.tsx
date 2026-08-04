@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SESSION_COOKIE, parseMemberSessionToken } from "@/lib/memberAuth";
+import { getAssignedStepIds, applyStepAssignment } from "@/lib/orientationAssignments";
 import OrientationChecklist from "@/components/portal/OrientationChecklist";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function PortalOrientationPage() {
 
   const supabase = supabaseServer();
 
-  const [{ data: steps }, { data: progress }, { data: member }] = await Promise.all([
+  const [{ data: allSteps }, { data: progress }, { data: member }, assignedStepIds] = await Promise.all([
     supabase
       .from("orientation_steps")
       .select("id, title, description")
@@ -33,8 +34,10 @@ export default async function PortalOrientationPage() {
       .select("orientation_completed_at, mentor_admin_user_id")
       .eq("id", session.memberId)
       .maybeSingle(),
+    getAssignedStepIds(supabase, session.memberId),
   ]);
 
+  const steps = applyStepAssignment(allSteps ?? [], assignedStepIds);
   const completedStepIds = new Set((progress ?? []).map((p) => p.orientation_step_id as string));
 
   let mentorName: string | null = null;
