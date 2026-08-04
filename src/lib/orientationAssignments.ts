@@ -24,3 +24,20 @@ export function applyStepAssignment<T extends { id: string }>(steps: T[], assign
   if (assignedStepIds.size === 0) return steps;
   return steps.filter((step) => assignedStepIds.has(step.id));
 }
+
+/**
+ * "N of M steps complete" for a single member -- M is their custom
+ * assignment size if they have one, otherwise every global step; N is how
+ * many of THOSE specific steps they've completed (not a raw count of every
+ * progress row), matching the same "narrowing an assignment can't count
+ * old completions outside it" rule the completion route itself enforces.
+ */
+export function computeOrientationProgress(
+  allStepIds: string[],
+  assignedStepIds: Set<string>,
+  completedStepIds: Set<string>
+): { completed: number; total: number } {
+  const applicableIds = assignedStepIds.size > 0 ? Array.from(assignedStepIds) : allStepIds;
+  const completed = applicableIds.filter((id) => completedStepIds.has(id)).length;
+  return { completed, total: applicableIds.length };
+}

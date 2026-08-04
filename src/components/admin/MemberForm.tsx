@@ -21,10 +21,8 @@ type MemberValues = {
   hide_from_directory?: boolean | null;
   state?: string | null;
   country?: string | null;
-  mentor_admin_user_id?: string | null;
 };
 
-type MentorOption = { id: string; full_name: string };
 type OrientationStepOption = { id: string; title: string };
 
 // Short, maintainable list rather than a full ~195-country roster --
@@ -71,14 +69,12 @@ export default function MemberForm({
   member,
   onDone,
   existingNames,
-  mentorOptions,
   orientationSteps,
   assignedOrientationStepIds,
 }: {
   member?: MemberValues;
   onDone?: () => void;
   existingNames?: string[];
-  mentorOptions?: MentorOption[];
   orientationSteps?: OrientationStepOption[];
   assignedOrientationStepIds?: string[];
 }) {
@@ -147,10 +143,6 @@ export default function MemberForm({
       hideFromDirectory,
       state: isUnitedStates ? String(formData.get("state") ?? "") : "",
       country: effectiveCountry,
-      // Mentor assignment is edit-only (see the dropdown below) -- POST
-      // /api/admin/members doesn't accept this field, so it's only ever
-      // included once there's an existing member to attach it to.
-      ...(isEditing ? { mentorAdminUserId: String(formData.get("mentorAdminUserId") ?? "") || null } : {}),
     };
 
     const url = isEditing ? `/api/admin/members/${member!.id}` : "/api/admin/members";
@@ -265,26 +257,6 @@ export default function MemberForm({
             <option value="member">Member</option>
           </select>
         </label>
-
-        {isEditing ? (
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-muted">
-              Mentor <span className="text-muted/70">(orientation check-ins go to them)</span>
-            </span>
-            <select
-              name="mentorAdminUserId"
-              defaultValue={member?.mentor_admin_user_id ?? ""}
-              className="w-full rounded-lg border border-hairline bg-ink px-3 py-2 text-sm text-parchment focus:border-lilac"
-            >
-              <option value="">Unassigned</option>
-              {(mentorOptions ?? []).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.full_name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
 
         {isEditing ? (
           <div className="rounded-lg border border-hairline p-3 sm:col-span-2">

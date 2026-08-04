@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import MemberForm from "@/components/admin/MemberForm";
 import DeleteButton from "@/components/admin/DeleteButton";
 import MemberAvatarImage from "@/components/MemberAvatarImage";
@@ -51,7 +52,6 @@ export default function MemberRow({
     return (
       <MemberForm
         member={member}
-        mentorOptions={mentorOptions}
         orientationSteps={orientationSteps}
         assignedOrientationStepIds={assignedOrientationStepIds}
         onDone={() => setEditing(false)}
@@ -85,7 +85,7 @@ export default function MemberRow({
   }
 
   return (
-    <div className="rounded-2xl border border-hairline bg-surface p-4">
+    <div id={`member-${member.id}`} className="rounded-2xl border border-hairline bg-surface p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="overflow-hidden rounded-full bg-surfaceRaised">
@@ -112,7 +112,12 @@ export default function MemberRow({
               ) : null}
             </p>
             {member.role ? <p className="text-xs text-muted">{member.role}</p> : null}
-            <p className="text-xs text-muted">Mentor: {mentorName ?? "Unassigned"}</p>
+            <p className="text-xs text-muted">
+              Mentor: {mentorName ?? "Unassigned"}{" "}
+              <Link href="/admin/orientation#members-in-progress" className="text-lilac-soft hover:underline">
+                (change)
+              </Link>
+            </p>
             <p className="text-xs text-muted">
               Portal access: {member.password_hash ? "Active" : "Not set up yet"}
             </p>
