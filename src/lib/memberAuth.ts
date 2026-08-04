@@ -23,6 +23,14 @@ export type MemberSession = {
   fullName: string;
   email: string;
   expiry: number;
+  // Only ever set on a token minted via the admin-login bridge (see
+  // /api/admin/auth/token-login), never on a real member's own login --
+  // a snapshot of that admin_users row's granted sections at sign-in time
+  // (same staleness window as the admin's own session token). A plain
+  // string[], not AdminSection[]: this file deliberately never imports
+  // from adminAuth.ts (see the top-of-file comment), and a value import
+  // would cross that line even though a type-only one wouldn't.
+  adminSections?: string[];
 };
 
 export function sign(value: string) {
@@ -85,6 +93,19 @@ export function getMemberSessionFromRequest(request: NextRequest): MemberSession
   }
 
   return parseMemberSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+}
+
+/**
+ * Gates the mobile-only Contacts/Reviews/Orientation routes below. A real
+ * member's own session never has adminSections set, so this always passes
+ * for them -- unaffected, exactly as before this permission system existed.
+ * It only actually filters an admin-bridge session (adminSections set),
+ * requiring the owner to have explicitly granted that section to this
+ * admin_user via the Users management page, the same allowed_sections
+ * mechanism that already gates Members/Memories/Planner/etc.
+ */
+export function memberSessionHasAdminSection(session: MemberSession, section: string): boolean {
+  return !session.adminSections || session.adminSections.includes(section);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getMemberSessionFromRequest } from "@/lib/memberAuth";
+import { getMemberSessionFromRequest, memberSessionHasAdminSection } from "@/lib/memberAuth";
 
 const TIER_ORDER = ["founder", "council", "junior_council", "member"] as const;
 
@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
   const session = getMemberSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!memberSessionHasAdminSection(session, "contacts")) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const supabase = supabaseServer();

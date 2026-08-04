@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getMemberSessionFromRequest } from "@/lib/memberAuth";
+import { getMemberSessionFromRequest, memberSessionHasAdminSection } from "@/lib/memberAuth";
 import { sendExpoPushToAdminUsers } from "@/lib/messaging";
 import { sendOrientationCheckInEmail } from "@/lib/resend";
 
@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
   const session = getMemberSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!memberSessionHasAdminSection(session, "orientation")) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const parsed = checkInSchema.safeParse(await request.json());

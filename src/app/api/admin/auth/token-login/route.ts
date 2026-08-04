@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
           memberId: memberRow.id,
           fullName: memberRow.full_name,
           email: memberRow.email,
+          // Snapshot of this admin's granted sections, checked by
+          // memberSessionHasAdminSection() on the Contacts/Reviews/
+          // Orientation routes -- lets the owner gate this admin's access
+          // to those mobile screens the same way Members/Memories/Planner
+          // are already gated, instead of every linked admin seeing them
+          // unconditionally.
+          adminSections: session.sections,
         }),
         fullName: memberRow.full_name,
         email: memberRow.email,

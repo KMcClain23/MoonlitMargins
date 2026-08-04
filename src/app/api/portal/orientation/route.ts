@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getMemberSessionFromRequest } from "@/lib/memberAuth";
+import { getMemberSessionFromRequest, memberSessionHasAdminSection } from "@/lib/memberAuth";
 import { getAssignedStepIds, applyStepAssignment } from "@/lib/orientationAssignments";
 
 export async function GET(request: NextRequest) {
   const session = getMemberSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!memberSessionHasAdminSection(session, "orientation")) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const supabase = supabaseServer();

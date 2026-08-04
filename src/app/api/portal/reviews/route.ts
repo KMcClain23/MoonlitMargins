@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getMemberSessionFromRequest } from "@/lib/memberAuth";
+import { getMemberSessionFromRequest, memberSessionHasAdminSection } from "@/lib/memberAuth";
 
 export async function GET(request: NextRequest) {
   const session = getMemberSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!memberSessionHasAdminSection(session, "reviews")) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const supabase = supabaseServer();
@@ -46,6 +49,9 @@ export async function POST(request: NextRequest) {
   const session = getMemberSessionFromRequest(request);
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!memberSessionHasAdminSection(session, "reviews")) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const parsed = createSchema.safeParse(await request.json());

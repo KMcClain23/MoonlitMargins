@@ -1,4 +1,14 @@
-export type AdminSection = "applications" | "events" | "members" | "memories" | "tasks" | "users" | "planner";
+export type AdminSection =
+  | "applications"
+  | "events"
+  | "members"
+  | "memories"
+  | "tasks"
+  | "users"
+  | "planner"
+  | "contacts"
+  | "reviews"
+  | "orientation";
 export type AdminRole = "owner" | "admin" | "editor";
 
 export const ALL_SECTIONS: AdminSection[] = [
@@ -9,6 +19,9 @@ export const ALL_SECTIONS: AdminSection[] = [
   "tasks",
   "users",
   "planner",
+  "contacts",
+  "reviews",
+  "orientation",
 ];
 
 export const SECTION_LABELS: Record<AdminSection, string> = {
@@ -19,6 +32,9 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   tasks: "Tasks",
   users: "Users",
   planner: "Planner",
+  contacts: "Contacts",
+  reviews: "Reviews",
+  orientation: "Orientation",
 };
 
 // What each role can see by default. A member's allowed_sections column
@@ -32,6 +48,14 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
 // It's an internal scheduling tool for a small subset of admins, granted
 // per-admin_user via the Users management UI's allowed_sections override,
 // the same mechanism editor-plus-Applications uses above.
+//
+// "contacts"/"reviews"/"orientation" follow the same rule, for the same
+// reason: nobody (including the owner) gets them automatically. They gate
+// the mobile app's member-portal screens -- an admin's OWN Contacts/
+// Reviews/Orientation, reachable only when their admin_users row is also
+// linked to a member row (see /api/admin/auth/token-login's bridge token
+// and memberAuth.ts's memberSessionHasAdminSection). The owner grants these
+// per-admin here, same as every other section.
 export const ROLE_DEFAULT_SECTIONS: Record<AdminRole, AdminSection[]> = {
   owner: ["applications", "events", "members", "memories", "tasks", "users"],
   admin: ["applications", "events", "members", "memories", "tasks"],
