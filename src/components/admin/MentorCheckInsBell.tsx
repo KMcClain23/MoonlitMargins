@@ -9,6 +9,7 @@ type CheckIn = {
   message: string;
   readAt: string | null;
   createdAt: string;
+  isSystemGenerated: boolean;
 };
 
 function formatCheckInTime(createdAt: string): string {
@@ -106,7 +107,14 @@ export default function MentorCheckInsBell() {
             {checkIns.map((c) => (
               <div key={c.id} className="rounded-lg border border-hairline p-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-parchment">{c.memberName}</p>
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-parchment">
+                    {/* Trophy for an automated "finished orientation" notice,
+                        speech bubble for a member's own check-in note --
+                        distinguishable at a glance without reading the
+                        message text itself. */}
+                    <span aria-hidden="true">{c.isSystemGenerated ? "🏆" : "💬"}</span>
+                    {c.memberName}
+                  </p>
                   {!c.readAt ? (
                     <button
                       onClick={() => markRead(c.id)}

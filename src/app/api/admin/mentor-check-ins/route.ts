@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const supabase = supabaseServer();
   let query = supabase
     .from("mentor_check_ins")
-    .select("id, member_id, mentor_admin_user_id, message, read_at, created_at")
+    .select("id, member_id, mentor_admin_user_id, message, read_at, created_at, is_system_generated")
     .order("created_at", { ascending: false });
 
   // A mentor only sees check-ins assigned to them -- ?all=true (owner-only,
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       message: c.message,
       readAt: c.read_at,
       createdAt: c.created_at,
+      isSystemGenerated: c.is_system_generated,
     })),
   });
 }
